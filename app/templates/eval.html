@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block body %}<h1>Eval: quote extraction accuracy</h1>
-<p class="sub">Labels were written by hand from the 4 real quotes (so N is small). We check every field the comparison depends on: dates, validity, GST, advance, credit days, warranty, and unit, quantity and rate for all 7 items.</p>
-<div class="card"><div class="rank">{{(res.acc*100)|round(1)}}%</div> field-level accuracy: {{res.correct}} of {{res.fields}} fields correct.<br>
+<p class="sub">{{res.n_quotes}} quotes in 4 layouts (clean table, letterhead, email-style, handwritten scan). {% if synthetic %}The quotes are <b>synthetic</b>, generated from known ground truth, so the labels are independent of the extractor.{% else %}Labels were written by hand from the real quotes.{% endif %} Each field the comparison depends on is checked: dates, validity, GST rate and basis, advance, credit days, warranty, start days, freight, and unit, quantity and rate for all 7 items.</p>
+<div class="card"><div class="rank">{{(res.acc*100)|round(1)}}%</div> field-level accuracy: {{res.correct}} of {{res.fields}} fields correct across {{res.n_quotes}} quotes.<br>
 Independent landed-base check: {{res.base_ok}} of {{res.base_n}} vendor totals match a hand calculation to within Rs 2.</div>
-{% if res.misses %}<h2>Misses</h2><ul>{% for m in res.misses %}<li>{{m}}</li>{% endfor %}</ul>{% endif %}{% endblock %}
+<p class="mut">Limits: a small set, clean generated layouts, and one handwriting style. It shows the pipeline is sound, not that every real-world quote will read perfectly; low-confidence reads are flagged for the HOD instead of silently trusted.</p>{% if res.misses %}<h2>Misses</h2><ul>{% for m in res.misses %}<li>{{m}}</li>{% endfor %}</ul>{% endif %}{% endblock %}

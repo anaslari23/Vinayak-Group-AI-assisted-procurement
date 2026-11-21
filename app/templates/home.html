@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% block body %}
-<h1>From site requirement to vendor comparative</h1>
+{% if tender.synthetic %}<div class="banner"><b>Synthetic demo package.</b> The project, vendors, rates and vendor history here are invented. Built for the Vinayak Group procurement problem; no Vinayak data is included.</div>{% endif %}<h1>From site requirement to vendor comparative</h1>
 <p class="sub">{{tender.project}} · {{tender.package}}. The agent reads messy quotes, puts them on a like-for-like landed cost, ranks vendors with reasons, and asks the HOD. It never selects, orders or pays.</p>
 <div class="grid">
 <div class="card"><b>1-2 · Capture and item code</b><p class="mut">Form, WhatsApp text or voice note, matched to ERP item codes with duplicate flags.</p><a class="btn" href="/requirement">Open</a> <span class="mut">{{n.requirements}} saved</span></div>
