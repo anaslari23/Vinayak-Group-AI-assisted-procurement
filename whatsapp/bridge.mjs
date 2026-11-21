@@ -66,8 +66,10 @@ async function start() {
 start()
 
 // outbox: the agent server queues replies; we deliver them with whichever socket is connected right now
+let busy = false
 setInterval(async () => {
-  if (!current || !ready) return
+  if (!current || !ready || busy) return
+  busy = true
   try {
     const r = await fetch(APP + '/whatsapp/outbox', { headers: H }); if (!r.ok) return
     const { items } = await r.json(); const done = []
@@ -79,7 +81,7 @@ setInterval(async () => {
       } catch (e) { console.log('send error', String(e).slice(0, 200)); break }
     }
     if (done.length) await post('/whatsapp/ack', { ids: done })
-  } catch {}
+  } catch {} finally { busy = false }
 }, 2000)
 
 // keep the app's connection panel truthful even if the app restarts

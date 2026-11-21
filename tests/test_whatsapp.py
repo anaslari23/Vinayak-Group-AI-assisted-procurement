@@ -64,3 +64,11 @@ def test_replies_are_localised_for_a_voice_sender_and_status_works(monkeypatch):
 def test_a_hindi_message_is_judged_by_the_model_not_dropped_by_the_english_prefilter():
     r = wa.inbound(msg(20, "डेमो विला के लिए दो सौ बैग सीमेंट चाहिए 10 दिसंबर तक"))
     assert r["handled"] == "noticed a requirement"
+
+
+def test_each_reply_is_served_once_even_if_the_bridge_polls_again_before_acking():
+    wa.inbound(msg(30, "need 500 sqft toilet floor waterproofing at Aquina by 10 Dec")); first = wa.outbox()
+    assert first and wa.outbox() == []                        # a second poll before the ack must not return the same messages
+    c = db.con(); c.execute("update wa_out set claimed_at=datetime('now','-120 seconds') where sent=2"); c.commit(); c.close()
+    again = wa.outbox(); assert [o["id"] for o in again] == [o["id"] for o in first]      # a claim that was never acked is retried after 90 s
+    wa.ack([o["id"] for o in again]); assert wa.outbox() == []

@@ -2,6 +2,7 @@
 it notices a requirement without being asked, takes it forward, asks the engineer what is missing, and brings the group's admins (the HOD role)
 the decision. Nobody has to type a command. WARNING: the bridge uses an unofficial WhatsApp Web login: against WhatsApp's terms, use a spare number."""
 import base64, json, os, re, threading
+_LOCK = threading.Lock()
 from . import db, engine, stock, voice
 from .llm import ask_json
 
@@ -164,8 +165,14 @@ def flush_cases():
 
 
 def outbox():
-    flush_cases()
-    c = db.con(); rows = [dict(r) for r in c.execute("select * from wa_out where sent=0 order by id limit 20")]; c.close()
+    """Hand each message to the bridge exactly once: it is CLAIMED when served (sent=2) and only marked sent on the bridge's ack.
+    A claim that is never acked within 90 s goes back in the queue. The lock stops overlapping polls from double-flushing or double-serving."""
+    with _LOCK:
+        flush_cases()
+        c = db.con()
+        c.execute("update wa_out set sent=0, claimed_at=null where sent=2 and claimed_at < datetime('now','-90 seconds')")
+        rows = [dict(r) for r in c.execute("select * from wa_out where sent=0 order by id limit 20")]
+        c.executemany("update wa_out set sent=2, claimed_at=datetime('now') where id=?", [(r["id"],) for r in rows]); c.commit(); c.close()
     return [{"id": r["id"], "jid": r["jid"], "text": r["text"], "mentions": json.loads(r["mentions"] or "[]"), "ogg_b64": r["ogg_b64"]} for r in rows]
 
 
