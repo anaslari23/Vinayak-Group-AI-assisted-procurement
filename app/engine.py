@@ -23,6 +23,7 @@ def _lock(cid):
 # ---------- persistence helpers
 def _case(cid):
     c = db.con(); r = c.execute("select * from cases where id=?", (cid,)).fetchone(); c.close()
+    if r is None: raise KeyError(f"case {cid} not found")
     d = dict(r); d["data"] = json.loads(d["data"] or "{}"); return d
 
 
@@ -183,7 +184,14 @@ def h_compare(c):
     import os
     link = f"{os.getenv('PUBLIC_URL', 'http://localhost:8000')}/cases/{cid}"
     text = f"Recommendation for {TENDER['project']} {TENDER['package']}:\n{summ}\n\nFull statement and reasons: {link}\nThis is a recommendation only; you decide."
-    d["recommended"] = top["n"]["vendor"]
+    d["recommended"] = top["n"]["vendor"]; d["recommended_key"] = (top["vendor_row"] or {}).get("key")
+    if not d.get("signals_recorded"):  # what the agent observed about each vendor's behaviour in this buying round
+        keys = {(r["vendor_row"] or {}).get("key"): r for r in rows}
+        for k in d["shortlist"]:
+            r = keys.get(k)
+            db.add_signal(k, cid, 1 if r else 0, d.get("reply_hours", {}).get(k), 1 if k in d.get("chased", []) else 0, len(d.get("followups", {}).get(k, [])) if r else None, round(r["vs_lowest_pct"], 1) if r else None, f"agent-observed, case #{cid}")
+        d["signals_recorded"] = True
+        log(cid, "agent", "ledger", f"Recorded how {len(d['shortlist'])} vendors behaved this round (reply speed, chasers, quote completeness, price vs lowest) in the vendor ledger.")
     say(cid, "hod", text, [{"label": f"Approve {top['n']['vendor']}", "data": "decision:approve"}, {"label": "Send back for re-quote", "data": "decision:send back"}, {"label": "Reject", "data": "decision:reject"}])
     try: mailer.send("hod", mailer.HOD_ADDR, f"Vendor recommendation for approval: {TENDER['package']}", text + f"\nReview link: {link}\nSigned token: {tok}")
     except mailer.RecipientBlocked: pass
@@ -191,7 +199,17 @@ def h_compare(c):
     _save(cid, "AWAITING_HOD", "hod", d); return False
 
 
-HANDLERS = {"NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
+WORK_DAYS = 60
+
+
+def h_in_work(c):
+    cid, d = c["id"], c["data"]
+    if now(c) < datetime.fromisoformat(d["decided_at"]) + timedelta(days=WORK_DAYS): return False
+    say(cid, "engineer", f"{d.get('recommended')}'s work should be complete by now. Quick check-in: did they finish on time?", [{"label": "On time", "data": "checkin:t:0"}, {"label": "1-7 days late", "data": "checkin:t:4"}, {"label": "8+ days late", "data": "checkin:t:12"}])
+    log(cid, "agent", "asked", "Work period elapsed: started the post-job check-in with the site engineer."); _save(cid, "CHECKIN", "engineer", d); return False
+
+
+HANDLERS = {"IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
 
 
 def advance(cid, max_steps=12):
@@ -228,9 +246,25 @@ def on_hod_action(cid, action: str):
             if val == "send back":
                 d["deadline"] = (now(c) + timedelta(hours=RFQ_HOURS)).isoformat(); _save(cid, "QUOTING", "vendors", d)
                 log(cid, "agent", "note", "HOD sent it back. Re-opened quoting for 48 h; I will chase vendors for revised quotes.")
+            elif val == "approve" and d.get("recommended_key"):
+                d["decided_at"] = now(c).isoformat(); _save(cid, "IN_WORK", None, d)
+                say(cid, "engineer", f"HOD approved {d.get('recommended')}. (Recommendation only; ordering stays with Vinayak.) When the work is done I will ask you two quick questions about delivery and quality, so the vendor's record is real next time.")
+                log(cid, "agent", "note", "Approved. Waiting for the work to complete; a post-job check-in with the site engineer follows.")
             else:
                 _save(cid, "DECIDED", None, d); say(cid, "engineer", f"HOD decision on {d.get('recommended')}: {val}. (Recommendation only; ordering stays with Vinayak.)")
                 log(cid, "agent", "closed", f"Case closed with HOD decision: {val}.")
+        elif kind == "checkin" and c["state"] == "CHECKIN":
+            stage, _, ans = val.partition(":"); ck = d.setdefault("checkin", {}); ck[stage] = ans
+            if stage == "t":
+                say(cid, "engineer", "How was the quality of the finish?", [{"label": "5 Excellent", "data": "checkin:q:5"}, {"label": "4 Good", "data": "checkin:q:4"}, {"label": "3 Acceptable", "data": "checkin:q:3"}, {"label": "2 Poor", "data": "checkin:q:2"}, {"label": "1 Bad", "data": "checkin:q:1"}]); _save(cid, data=d)
+            elif stage == "q":
+                say(cid, "engineer", "Any rework, leakage callbacks or billing disputes?", [{"label": "None", "data": "checkin:i:none"}, {"label": "Rework / leakage", "data": "checkin:i:rework"}, {"label": "Billing dispute", "data": "checkin:i:dispute"}, {"label": "Both", "data": "checkin:i:both"}]); _save(cid, data=d)
+            else:
+                delay = int(ck["t"]); q = int(ck["q"]); iss = ck["i"]
+                db.add_job(d["recommended_key"], cid, q, 1 if delay <= 3 else 0, delay, 1 if iss in ("dispute", "both") else 0, f"check-in: {'no issues' if iss == 'none' else iss}", f"site engineer check-in, case #{cid}", now(c).date().isoformat())
+                log(cid, "agent", "ledger", f"Recorded in the vendor ledger for {d.get('recommended')}: {delay} day(s) late, quality {q}/5, issues: {iss}. The next ranking will use it.")
+                say(cid, "engineer", "Thank you. Recorded in the vendor's performance ledger."); _save(cid, "DECIDED", None, d)
+                log(cid, "agent", "closed", "Case closed after post-job check-in.")
     advance(cid)
 
 
@@ -314,7 +348,7 @@ def on_vendor_text_reply(cid, vendor_key: str, text: str):
 
 def tick():
     """Scheduler heartbeat: lets time-based rules (chasers, deadlines) fire on their own."""
-    c = db.con(); ids = [r["id"] for r in c.execute("select id from cases where state='QUOTING'")]; c.close()
+    c = db.con(); ids = [r["id"] for r in c.execute("select id from cases where state in ('QUOTING','IN_WORK')")]; c.close()
     for cid in ids: advance(cid)
 
 

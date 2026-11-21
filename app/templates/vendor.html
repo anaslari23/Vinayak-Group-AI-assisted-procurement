@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block body %}
+<h1>{{v.name}}</h1><p class="sub">{{'Registered with Vinayak.' if v.registered else 'Not in the contractor list: registration needed before a work order.'}} Performance now: <b>{{pts|round(1)}} / 30</b>. {{txt}}.</p>
+<h2>Job record</h2>
+<table><tr><th>Date</th><th>Project</th><th>Quality</th><th>Delay (days)</th><th>Dispute</th><th>Note</th><th>Source</th></tr>
+{% for h in hist %}<tr><td>{{h.job_date}}</td><td>{{h.project}}</td><td class="n">{{h.quality}}/5</td><td class="n">{{h.delay_days}}</td><td>{{'yes' if h.disputes else 'no'}}</td><td>{{h.note}}</td><td><span class="pill {{'warn' if 'SYNTHETIC' in h.source else 'ok'}}">{{h.source}}</span></td></tr>{% else %}<tr><td colspan="7" class="mut">No jobs recorded.</td></tr>{% endfor %}</table>
+<h2>Behaviour in RFQ rounds</h2>
+<table><tr><th>Case</th><th>Answered</th><th>Hours to reply</th><th>Chased</th><th>Open questions</th><th>Price vs lowest</th><th>Source</th></tr>
+{% for s in sigs %}<tr><td>{{s.case_id or '-'}}</td><td>{{'yes' if s.responded else 'no'}}</td><td class="n">{{s.hours if s.hours is not none else '-'}}</td><td>{{'yes' if s.chased else 'no'}}</td><td class="n">{{s.issues if s.issues is not none else '-'}}</td><td class="n">{{('%+.0f%%'|format(s.vs_lowest_pct)) if s.vs_lowest_pct is not none else '-'}}</td><td><span class="pill {{'warn' if 'SYNTHETIC' in s.source else 'ok'}}">{{s.source}}</span></td></tr>{% else %}<tr><td colspan="7" class="mut">No RFQ rounds recorded.</td></tr>{% endfor %}</table>
+<h2>Add a job outcome by hand</h2>
+<form method="post" action="/vendors/{{v.key}}/job" class="card">Quality (1-5) <input type="number" name="quality" value="4" min="1" max="5" style="width:60px"> Days late <input type="number" name="delay_days" value="0" style="width:70px"> Dispute <select name="dispute"><option value="0">no</option><option value="1">yes</option></select> <input type="text" name="note" placeholder="note" style="width:260px;margin:0 6px"> <button>Record</button></form>
+{% endblock %}

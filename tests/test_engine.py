@@ -24,5 +24,12 @@ def test_case_runs_without_clicks(tmp_path, monkeypatch):
     assert engine._case(cid)["state"] == "QUOTING"
     engine.advance_time(cid, 24)
     c = engine._case(cid); assert c["state"] == "AWAITING_HOD" and c["waiting"] == "hod"
+    assert len(db.signals(engine._case(cid)["data"]["recommended_key"])) >= 1   # behaviour of vendors was recorded
     engine.on_hod_action(cid, "decision:approve")
+    assert engine._case(cid)["state"] == "IN_WORK"
+    engine.advance_time(cid, 24 * 61)
+    assert engine._case(cid)["state"] == "CHECKIN" and engine._case(cid)["waiting"] == "engineer"
+    key = engine._case(cid)["data"]["recommended_key"]; before = len(db.history(key))
+    for a in ("checkin:t:4", "checkin:q:4", "checkin:i:dispute"): engine.on_hod_action(cid, a)
     assert engine._case(cid)["state"] == "DECIDED"
+    last = db.history(key)[-1]; assert (last["quality"], last["delay_days"], last["disputes"], last["on_time"]) == (4, 4, 1, 0) and len(db.history(key)) == before + 1

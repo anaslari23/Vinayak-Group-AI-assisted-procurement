@@ -10,7 +10,8 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS items(code TEXT, descr TEXT, source TEXT DEFAULT 'ERP export (data pack)');
 CREATE TABLE IF NOT EXISTS vendors(key TEXT PRIMARY KEY, name TEXT, category TEXT, registered INT, test_email TEXT, category_source TEXT);
 CREATE TABLE IF NOT EXISTS vendor_history(id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_key TEXT, project TEXT, work TEXT,
-   quality INT, on_time INT, delay_days INT, disputes INT, note TEXT, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
+   quality INT, on_time INT, delay_days INT, disputes INT, note TEXT, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP, job_date TEXT);
+CREATE TABLE IF NOT EXISTS vendor_signals(id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_key TEXT, case_id INTEGER, responded INT, hours REAL, chased INT, issues INT, vs_lowest_pct REAL, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS requirements(id INTEGER PRIMARY KEY AUTOINCREMENT, raw TEXT, channel TEXT, parsed TEXT, match TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS mail_log(id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, to_addr TEXT, subject TEXT, body TEXT, status TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS quotes(case_id INTEGER DEFAULT 0, vendor_key TEXT, source_file TEXT, extracted TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(case_id, vendor_key));
@@ -66,9 +67,14 @@ def init(reset=False):
         for frag, rows in _history().items():
             row = c.execute("select key from vendors where upper(name) like ?", (f"%{frag}%",)).fetchone()
             k = row["key"]
-            for q, ot, dd, ds, note in rows:
-                c.execute("insert into vendor_history(vendor_key,project,work,quality,on_time,delay_days,disputes,note,source) values(?,?,?,?,?,?,?,?,?)",
-                          (k, "past project", "waterproofing", q, ot, dd, ds, note, "SYNTHETIC DEMO DATA"))
+            for i, (q, ot, dd, ds, note) in enumerate(rows):
+                c.execute("insert into vendor_history(vendor_key,project,work,quality,on_time,delay_days,disputes,note,source,job_date) values(?,?,?,?,?,?,?,?,?,?)",
+                          (k, "past project", "waterproofing", q, ot, dd, ds, note, "SYNTHETIC DEMO DATA", ["2025-04-10", "2025-10-05", "2026-05-20", "2026-08-15"][i % 4]))
+        sig = SEED / "signals.json"
+        for frag, rows in (json.loads(sig.read_text()).items() if sig.exists() else []):
+            row = c.execute("select key from vendors where upper(name) like ?", (f"%{frag}%",)).fetchone()
+            for resp, hrs, ch, iss, vs in rows:
+                c.execute("insert into vendor_signals(vendor_key,case_id,responded,hours,chased,issues,vs_lowest_pct,source) values(?,?,?,?,?,?,?,?)", (row["key"], 0, resp, hrs, ch, iss, vs, "SYNTHETIC DEMO DATA"))
     c.commit(); c.close()
 
 
@@ -85,3 +91,15 @@ def match_vendor(name: str):
 def history(vendor_key: str):
     c = con(); rows = [dict(r) for r in c.execute("select * from vendor_history where vendor_key=?", (vendor_key,))]; c.close()
     return rows
+
+
+def signals(vendor_key: str):
+    c = con(); rows = [dict(r) for r in c.execute("select * from vendor_signals where vendor_key=?", (vendor_key,))]; c.close(); return rows
+
+
+def add_signal(vendor_key, case_id, responded, hours, chased, issues, vs_lowest_pct, source):
+    c = con(); c.execute("insert into vendor_signals(vendor_key,case_id,responded,hours,chased,issues,vs_lowest_pct,source) values(?,?,?,?,?,?,?,?)", (vendor_key, case_id, responded, hours, chased, issues, vs_lowest_pct, source)); c.commit(); c.close()
+
+
+def add_job(vendor_key, case_id, quality, on_time, delay_days, disputes, note, source, job_date):
+    c = con(); c.execute("insert into vendor_history(vendor_key,project,work,quality,on_time,delay_days,disputes,note,source,job_date) values(?,?,?,?,?,?,?,?,?,?)", (vendor_key, f"case #{case_id}", "waterproofing", quality, on_time, delay_days, disputes, note, source, job_date)); c.commit(); c.close()

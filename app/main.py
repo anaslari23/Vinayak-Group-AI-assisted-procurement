@@ -20,7 +20,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
+STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("V", "Vendors", "/vendors"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
 @app.on_event("startup")
@@ -236,7 +236,7 @@ def eval_page(request: Request):
 # ---- the agent: cases
 from . import engine
 STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "ITEM_REVIEW": "waiting for HOD (item code)", "RFQ": "sending RFQs",
-               "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for HOD decision", "DECIDED": "closed"}
+               "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for HOD decision", "IN_WORK": "work in progress", "CHECKIN": "post-job check-in", "DECIDED": "closed"}
 T.env.globals["STATE_LABEL"] = STATE_LABEL
 
 
@@ -377,3 +377,31 @@ async def sim_voice(file: UploadFile = File(...), case: int | None = Form(None))
 @app.post("/sim/button")
 def sim_button(data: str = Form(...), case: int | None = Form(None)):
     engine.bg(engine.on_hod_action, _sim_case(case), data); return HTMLResponse("ok")
+
+
+# ---- vendor performance ledger
+@app.get("/vendors", response_class=HTMLResponse)
+def vendors_page(request: Request):
+    from .scoring import perf_score
+    c = db.con(); vs = [dict(r) for r in c.execute("select * from vendors where category in ('waterproofing','road/civil') order by registered desc, name")]; c.close()
+    for v in vs:
+        v["hist"], v["sigs"] = db.history(v["key"]), db.signals(v["key"])
+        v["pts"], v["txt"], v["stats"] = perf_score(v["hist"], v["sigs"], 30)
+        v["synthetic"] = sum(1 for x in v["hist"] + v["sigs"] if "SYNTHETIC" in (x.get("source") or "")); v["observed"] = len(v["hist"]) + len(v["sigs"]) - v["synthetic"]
+    return page(request, "vendors.html", "V", vs=sorted(vs, key=lambda v: -v["pts"]))
+
+
+@app.get("/vendors/{key}", response_class=HTMLResponse)
+def vendor_page(request: Request, key: str):
+    from .scoring import perf_score
+    c = db.con(); v = c.execute("select * from vendors where key=?", (key,)).fetchone(); c.close()
+    if not v: return HTMLResponse("Unknown vendor", 404)
+    hist, sigs = db.history(key), db.signals(key); pts, txt, stats = perf_score(hist, sigs, 30)
+    return page(request, "vendor.html", "V", v=dict(v), hist=sorted(hist, key=lambda h: h.get("job_date") or ""), sigs=sigs, pts=pts, txt=txt)
+
+
+@app.post("/vendors/{key}/job")
+def vendor_job(key: str, quality: int = Form(...), delay_days: int = Form(0), dispute: int = Form(0), note: str = Form("")):
+    from datetime import date
+    db.add_job(key, 0, max(1, min(5, quality)), 1 if delay_days <= 3 else 0, delay_days, 1 if dispute else 0, note or "manual entry", "manual entry by HOD", date.today().isoformat())
+    return RedirectResponse(f"/vendors/{key}", 303)

@@ -10,4 +10,5 @@
 <div class="card"><b>Demo controls</b><p class="mut" style="margin:4px 0">Stand-ins for real-world events.</p>
 <form method="post" action="/cases/{{c.id}}/simulate-vendors" style="display:inline"><button class="sec">Vendors email their quotes</button></form>
 <form method="post" action="/cases/{{c.id}}/fastforward" style="display:inline"><button class="sec">Fast-forward 24 h</button></form>
+<form method="post" action="/cases/{{c.id}}/fastforward" style="display:inline"><input type="hidden" name="hours" value="1440"><button class="sec">Fast-forward 60 days (work done)</button></form>
 <form method="post" action="/cases/{{c.id}}/simulate-answers" style="display:inline"><button class="sec">Vendors answer follow-ups</button></form></div></div></div>

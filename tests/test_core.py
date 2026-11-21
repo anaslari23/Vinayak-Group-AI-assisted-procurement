@@ -25,3 +25,16 @@ def test_repriced_at_tender_qty_and_gst_assumed():
     assert n["qty_mismatch"] and n["gst_assumed"]
     from app.tender import TENDER
     assert abs(n["base_ex_gst"] - 10 * sum(l["qty"] for l in TENDER["lines"])) < 0.01
+
+
+def test_ledger_recency_and_thin_evidence():
+    from app.scoring import perf_score
+    good_old = [{"quality": 5, "on_time": 1, "disputes": 0, "job_date": "2020-01-01"}] * 3
+    bad_new = [{"quality": 2, "on_time": 0, "disputes": 1, "job_date": "2026-11-01"}]
+    mix_recent_bad = good_old + bad_new
+    pts_mix, _, _ = perf_score(mix_recent_bad, [], 30); pts_good, _, _ = perf_score(good_old, [], 30)
+    assert pts_mix < pts_good                       # a recent bad job outweighs old good ones
+    none, txt, _ = perf_score([], [], 30)
+    assert none == 15.0 and "UNVERIFIED" in txt      # no evidence: neutral and labelled
+    one_job = [{"quality": 5, "on_time": 1, "disputes": 0, "job_date": "2026-11-01"}]
+    pts_one, _, _ = perf_score(one_job, [], 30); assert 15 < pts_one < perf_score(one_job * 6, [], 30)[0]   # more evidence, more trust

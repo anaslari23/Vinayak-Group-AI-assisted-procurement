@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block body %}
+<h1>Vendor performance ledger</h1>
+<p class="sub">Vinayak records none of this today. The agent builds it from what it sees (how fast vendors answer, whether they need chasing, how complete their quotes are, how they price) and from site-engineer check-ins after the work (delivery, quality, disputes). Recent jobs weigh more; thin evidence pulls a score toward neutral and says so.</p>
+<div class="banner">Demo records tagged <b>SYNTHETIC</b> are invented to show the mechanism. Records tagged <b>observed</b> are captured live by the agent or entered by people.</div>
+<table><tr><th>Vendor</th><th>Registered</th><th>Performance (of 30)</th><th>Evidence</th><th>Summary</th></tr>
+{% for v in vs %}<tr><td><a href="/vendors/{{v.key}}"><b>{{v.name}}</b></a></td><td>{{'yes' if v.registered else 'no'}}</td><td class="n"><b>{{v.pts|round(1)}}</b></td>
+<td>{{v.hist|length}} job(s), {{v.sigs|length}} RFQ round(s)<br><span class="mut">{{v.synthetic}} synthetic · {{v.observed}} observed</span></td><td style="font-size:13px">{{v.txt}}</td></tr>{% endfor %}</table>
+{% endblock %}
