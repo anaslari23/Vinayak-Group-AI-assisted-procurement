@@ -77,6 +77,8 @@ async def req_submit(request: Request, text: str = Form(""), audio: UploadFile |
         except Exception as e:
             err = f"Voice transcription failed: {e}"
     result = None
+    if not text.strip() and not err:
+        err = "Type or paste a requirement, or upload a voice note."
     if text.strip():
         parsed = parse(text)
         m = items.match(parsed.get("item_description") or text)
