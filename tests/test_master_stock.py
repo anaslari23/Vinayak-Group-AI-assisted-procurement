@@ -88,3 +88,18 @@ def test_livekit_turn_endpoint_and_token(monkeypatch):
     import jwt
     t = c.get("/livekit/token").json(); claims = jwt.decode(t["token"], "s" * 40, algorithms=["HS256"])
     assert claims["iss"] == "APIkey" and claims["video"]["roomJoin"] and claims["video"]["room"] == t["room"] and t["url"].startswith("wss://")
+
+
+def test_live_flow_is_derived_from_what_the_agent_did(monkeypatch):
+    from app import flow
+    monkeypatch.setattr(engine.mailer, "send", lambda *a, **k: "stub")
+    parsed = {"item_description": "Portland cement OPC", "category": "other", "project": "Demo Greens", "location": None, "quantity": 200, "uom": "bags", "needed_by": "5 Dec", "missing": []}
+    monkeypatch.setattr(engine, "parse", lambda t: dict(parsed))
+    cid = engine.new_case("need 200 bags cement at Demo Greens by 5 Dec"); engine.advance(cid)
+    f = flow.build(cid); st = {s["key"]: s for s in f["steps"]}
+    assert f["state"] == "STOCK_REVIEW" and f["waiting"] == "hod"
+    assert st["capture"]["status"] == "done" and all(c["ok"] for c in st["capture"]["checks"])           # every check is computed from the parsed fields
+    assert st["item"]["status"] == "done" and st["item"]["summary"] == "MAT.CEM.01"
+    assert st["stock"]["status"] == "waiting" and st["stock"]["checks"]                                  # the stock step is where the case waits
+    assert st["rfq"]["status"] == "pending" and st["hod"]["status"] == "pending"                          # later steps have not happened
+    engine.on_hod_action(cid, "stock:buy"); f2 = flow.build(cid); assert {s["key"]: s["status"] for s in f2["steps"]}["stock"] == "done"

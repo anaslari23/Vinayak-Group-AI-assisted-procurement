@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% block body %}
+<style>
+.hd{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.pill2{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:99px;font-size:13px;border:1px solid var(--line);background:#fff}
+.dot{width:8px;height:8px;border-radius:50%;background:#bbb}.dot.live{background:#16a34a;animation:blink 1.2s infinite}.dot.wait{background:#d97706;animation:blink 1.2s infinite}@keyframes blink{50%{opacity:.35}}
+.compose{display:flex;gap:8px;margin:10px 0 14px}.compose input{flex:1;border-radius:99px;padding:10px 16px}.compose button{border-radius:99px}
+.msg{background:#d9fdd3;border-radius:12px 12px 2px 12px;padding:10px 14px;max-width:640px;margin:6px 0 14px auto;font-size:14px;animation:rise .35s}
+.bar{display:flex;gap:4px;margin:6px 0 16px}.bar i{flex:1;height:6px;border-radius:3px;background:#e7e2db;transition:background .4s}.bar i.done{background:#16a34a}.bar i.active{background:#4f46e5;animation:blink 1.1s infinite}.bar i.waiting{background:#d97706;animation:blink 1.1s infinite}.bar i.skipped{background:#cbd5e1}
+.st{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 52px;margin:10px 0;box-shadow:var(--shadow);transition:border-color .3s,opacity .3s,transform .3s}
+.st.pending{opacity:.45}.st.active{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)}.st.waiting{border-color:#d97706;box-shadow:0 0 0 3px rgba(217,119,6,.14)}.st.skipped{opacity:.6}
+.ic{position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;background:#f1ece4;color:#6b6560}
+.st.done .ic{background:#dcfce7;color:#15803d}.st.active .ic{background:#e0e7ff;color:#4f46e5}.st.waiting .ic{background:#fef3c7;color:#b45309}
+.spin{width:14px;height:14px;border:2px solid #c7d2fe;border-top-color:#4f46e5;border-radius:50%;animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.tt{font-weight:600}.sm{color:var(--mut);font-size:13px;margin-left:8px}.ck{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;margin:5px 0}.ck b{width:16px;text-align:center}.ck.new{animation:rise .4s both}
+.ok{color:#15803d}.wn{color:#b45309}.no{color:#b91c1c}.tag{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:0 8px;color:var(--mut)}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:3px 10px;font-size:13.5px;margin:8px 0;background:#faf7f2;border-radius:8px;padding:8px 10px}.kv span:nth-child(odd){color:var(--mut)}
+.mini{width:100%;font-size:13px;margin-top:8px;border-radius:8px;box-shadow:none;border:1px solid var(--line)}.mini th,.mini td{padding:4px 8px}
+.bars .row{display:grid;grid-template-columns:150px 1fr 60px;gap:8px;align-items:center;margin:6px 0;font-size:13px}.bars .track{height:12px;background:#efe9df;border-radius:6px;overflow:hidden;display:flex}.bars .track i{display:block;height:100%;transition:width .7s}
+.opt{margin:8px 6px 0 0}.hm{white-space:pre-wrap;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}
+.log{font-size:12px;color:var(--mut);border-top:1px dashed var(--line);margin-top:18px;padding-top:8px}.log div{margin:2px 0}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.empty{text-align:center;color:var(--mut);padding:30px 10px}
+</style>
+<div class="hd"><h1 style="margin:0">Live flow</h1><span class="pill2" id="status"><span class="dot"></span><span id="stlabel">connecting</span></span>
+<select id="pick" style="margin-left:auto;width:auto"></select></div>
+<p class="sub" style="margin:0 0 8px">Every requirement flows through these steps on its own. What you see is read live from what the agent actually did, check by check. Requirements arrive from WhatsApp, Telegram, a voice call, or this simulated phone.</p>
+<form class="compose" id="f"><input id="txt" type="text" placeholder="Simulated site engineer: e.g. Demo Heights Tower B toilet and balcony waterproofing, as per BOQ, needed by 20 Dec" autocomplete="off"><button>Send</button></form>
+<div id="bubble"></div><div class="bar" id="bar"></div><div id="steps"><div class="empty">Waiting for a requirement…</div></div><div class="log" id="log"></div>
+<script>
+const $=id=>document.getElementById(id);let cur=null,follow=true,seen=new Set(),hashes={},lastActive='';
+const ICON={done:'✓',waiting:'⏳',skipped:'↷',pending:'·'};
+const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function checkHTML(c,key,i){const id=key+'|'+c.text;const isNew=!seen.has(id);seen.add(id);const cls=c.ok===true?'ok':(c.ok===false?'no':'wn');const mark=c.ok===true?'✓':(c.ok===false?'✗':'!');
+ return `<div class="ck ${isNew?'new':''}" style="animation-delay:${isNew?(i%6)*70:0}ms"><b class="${cls}">${mark}</b><span>${esc(c.text)}${c.tag?` <span class="tag">${esc(c.tag)}</span>`:''}</span></div>`;}
+function dataHTML(d,s){if(!d)return '';let h='';
+ if(d.kv)h+='<div class="kv">'+d.kv.filter(x=>x[1]).map(x=>`<span>${esc(x[0])}</span><span>${esc(x[1])}</span>`).join('')+'</div>';
+ if(d.table)h+=`<table class="mini"><tr>${d.table.head.map(x=>`<th>${esc(x)}</th>`).join('')}</tr>${d.table.rows.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table>`;
+ if(d.bars)h+='<div class="bars">'+d.bars.map((b,i)=>`<div class="row"><span>${i+1}. ${esc(b.label)}</span><div class="track" title="${esc(b.note)}"><i style="width:${b.price}%;background:#4f46e5"></i><i style="width:${b.hist}%;background:#16a34a"></i><i style="width:${b.terms}%;background:#d97706"></i></div><b>${b.value}</b></div><div class="sm" style="margin:-2px 0 4px 158px">${esc(b.note)}</div>`).join('')+'<div class="sm">Bar = price + vendor history + terms and risk points</div></div>';
+ if(d.message){h+=`<div class="hm">${esc(d.message)}</div>`;(d.options||[]).forEach((o,i)=>{h+=`<button class="opt ${i?'sec':''}" data-a="${esc(o.data)}">${esc(o.label)}</button>`});}
+ return h;}
+function render(j){
+ if(!j.case_id){$('steps').innerHTML='<div class="empty">Waiting for a requirement… send one below, or message the WhatsApp group.</div>';$('bubble').innerHTML='';$('bar').innerHTML='';$('stlabel').textContent='idle';return;}
+ cur=j.case_id;$('bubble').innerHTML=`<div class="msg">${esc(j.raw)}<div class="sm" style="margin:4px 0 0">case #${j.case_id} · ${esc(j.channel)}</div></div>`;
+ const live=j.state!=='DECIDED';$('status').innerHTML=`<span class="dot ${j.waiting?'wait':(live?'live':'')}"></span><span>${esc(j.label)}${j.waiting?' · waiting for '+esc(j.waiting.replace('engineer','the requester').replace('hod','the admins')):''}</span>`;
+ $('bar').innerHTML=j.steps.map(s=>`<i class="${s.status}" title="${esc(s.title)}"></i>`).join('');
+ const root=$('steps');if(!root.dataset.init){root.innerHTML='';root.dataset.init=1;j.steps.forEach(s=>{const d=document.createElement('div');d.id='st-'+s.key;root.appendChild(d)});}
+ let activeKey='';
+ j.steps.forEach((s,idx)=>{const el=$('st-'+s.key);const h=JSON.stringify(s);if(hashes[s.key]===h)return;hashes[s.key]=h;
+  const icon=s.status==='active'?'<div class="spin"></div>':(ICON[s.status]||'·');
+  el.className='st '+s.status;el.innerHTML=`<div class="ic">${icon}</div><div><span class="tt">${idx+1}. ${esc(s.title)}</span><span class="sm">${esc(s.summary||'')}</span></div>`+(s.status==='pending'?'':`<div>${s.checks.map((c,i)=>checkHTML(c,s.key,i)).join('')}${dataHTML(s.data,s)}</div>`);
+  if(s.status==='active'||s.status==='waiting')activeKey=s.key;});
+ if(j.error)$('log').innerHTML='<div class="no">Problem: '+esc(j.error)+'</div>';else $('log').innerHTML='<b>Agent log</b>'+j.events.map(e=>`<div>${e.ts} · ${esc(e.actor)} · ${esc(e.text)}</div>`).join('');
+ if(activeKey&&activeKey!==lastActive){lastActive=activeKey;const t=$('st-'+activeKey);t&&t.scrollIntoView({behavior:'smooth',block:'center'});}}
+async function tick(){try{const j=await (await fetch('/api/flow'+(follow?'':'?case='+cur))).json();if(follow||j.case_id===cur){if(j.case_id!==cur){hashes={};seen=new Set();$('steps').dataset.init='';lastActive=''}render(j);}}catch(e){$('stlabel').textContent='reconnecting…'}}
+async function cases(){try{const l=await (await fetch('/api/cases')).json();const sel=$('pick');const v=sel.value;sel.innerHTML='<option value="latest">Following the latest case</option>'+l.map(c=>`<option value="${c.id}">#${c.id} · ${esc(c.raw)}</option>`).join('');sel.value=v||'latest';}catch(e){}}
+$('pick').onchange=e=>{follow=e.target.value==='latest';if(!follow)cur=+e.target.value;hashes={};seen=new Set();$('steps').dataset.init='';lastActive='';tick();};
+$('f').onsubmit=async e=>{e.preventDefault();const t=$('txt').value.trim();if(!t)return;$('txt').value='';follow=true;$('pick').value='latest';hashes={};seen=new Set();$('steps').dataset.init='';await fetch('/api/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:t})});tick();cases();};
+document.addEventListener('click',async e=>{const b=e.target.closest('button[data-a]');if(!b||!cur)return;b.disabled=true;const fd=new FormData();fd.append('data',b.dataset.a);await fetch('/cases/'+cur+'/button',{method:'POST',body:fd});tick();});
+setInterval(tick,1000);setInterval(cases,5000);tick();cases();
+</script>{% endblock %}

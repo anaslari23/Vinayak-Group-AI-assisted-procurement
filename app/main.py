@@ -21,7 +21,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-NAV = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("K", "Live voice", "/livekit"), ("W", "WhatsApp", "/whatsapp"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
+NAV = [("H", "Live flow", "/"), ("A", "Cases", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("K", "Live voice", "/livekit"), ("W", "WhatsApp", "/whatsapp"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
 STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
@@ -58,8 +58,8 @@ def weights(request):
     return {k: v * 100 / s for k, v in w.items()}
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
+@app.get("/old-home", response_class=HTMLResponse)
+def home_old(request: Request):
     c = db.con(); n = {t: c.execute(f"select count(*) from {t}").fetchone()[0] for t in ("requirements", "quotes", "mail_log", "decisions")}; c.close()
     return page(request, "home.html", "", n=n, tender=TENDER)
 
@@ -826,3 +826,34 @@ def livekit_token(request: Request):
 @app.get("/livekit", response_class=HTMLResponse)
 def livekit_page(request: Request):
     return page(request, "livekit.html", "K", configured=bool(os.getenv("LIVEKIT_API_KEY") and os.getenv("LIVEKIT_URL")))
+
+
+
+# ---- live flow: the home page. Polls /api/flow and animates what the agent actually did.
+from . import flow as flowmod
+
+
+@app.get("/api/flow")
+def api_flow(case: int | None = None):
+    cid = case or flowmod.latest_case()
+    if not cid: return {"case_id": None}
+    try: return flowmod.build(cid)
+    except KeyError: return {"case_id": None}
+
+
+@app.get("/api/cases")
+def api_cases():
+    c = db.con(); rows = [dict(r) for r in c.execute("select id, state, data from cases order by id desc limit 12")]; c.close()
+    return [{"id": r["id"], "state": r["state"], "raw": (json.loads(r["data"] or "{}").get("raw", ""))[:70]} for r in rows]
+
+
+@app.post("/api/send")
+async def api_send(request: Request):
+    p = await request.json(); text = (p.get("text") or "").strip()
+    if not text: return JSONResponse({"error": "empty"}, 400)
+    cid = engine.new_case(text, "web (live page)"); engine.bg(engine.advance, cid); return {"case_id": cid}
+
+
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return page(request, "live.html", "H")
