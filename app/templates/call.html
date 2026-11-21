@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% block body %}
+<h1>Call the agent</h1>
+<p class="sub">Speak the way you would on the phone, in any of: {{langs.values()|join(', ')}}. The agent detects your language, asks what is missing, reads the requirement back for you to confirm, and replies in your language. Only after you say yes does it carry on. (A real phone number can be pointed at this same agent; see the README.)</p>
+<div class="card" style="text-align:center">
+<button id="talk" style="font-size:18px;padding:14px 28px">🎤 Tap to speak</button>
+<p class="mut" id="state">Tap, speak, tap again to send. Your browser will ask for the microphone (works on localhost or https).</p>
+</div>
+<div id="log" class="card" style="min-height:120px"></div>
+<script>
+let rec, chunks=[], callId='', busy=false; const log=document.getElementById('log'), st=document.getElementById('state'), btn=document.getElementById('talk');
+function add(who,text,lang){const d=document.createElement('div');d.style.cssText='margin:6px 0;padding:8px 10px;border-radius:8px;background:'+(who==='you'?'#d9fdd3':'#f4efe7')+';white-space:pre-wrap';
+ d.innerHTML='<span class="mut" style="font-size:12px">'+(who==='you'?'You':'Agent')+(lang?' · '+lang:'')+'</span><br>'+text.replace(/</g,'&lt;');log.appendChild(d);d.scrollIntoView();}
+btn.onclick=async()=>{
+ if(busy)return;
+ if(rec&&rec.state==='recording'){rec.stop();return;}
+ try{const s=await navigator.mediaDevices.getUserMedia({audio:true});rec=new MediaRecorder(s);chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
+  rec.onstop=async()=>{s.getTracks().forEach(t=>t.stop());btn.textContent='🎤 Tap to speak';busy=true;st.textContent='Listening and thinking…';
+   const fd=new FormData();fd.append('file',new Blob(chunks,{type:rec.mimeType}),'voice.webm');fd.append('call_id',callId);
+   const r=await fetch('/call/turn',{method:'POST',body:fd});const j=await r.json();busy=false;
+   if(j.error){st.textContent='Problem: '+j.error;return;}
+   callId=j.call_id;add('you',j.heard||'(nothing heard)',j.lang_name);add('agent',j.reply,j.lang_name);
+   st.textContent=j.done?'Call complete: everything is confirmed. Case #'+j.case_id+' continues on its own.':'Your turn: tap and answer.';
+   const a=new Audio('data:audio/wav;base64,'+j.audio_b64);a.play();};
+  rec.start();btn.textContent='■ Tap to send';st.textContent='Recording…';}catch(e){st.textContent='Microphone not available: '+e.message;}};
+</script>{% endblock %}

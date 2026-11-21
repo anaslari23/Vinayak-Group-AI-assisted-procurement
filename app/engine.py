@@ -97,6 +97,42 @@ def h_new(c):
     _save(cid, "CLARIFY", None, d); return True
 
 
+def _wants_confirm(d):
+    ch = (d.get("channel") or "").lower()
+    return "call" in ch or "voice" in ch
+
+
+def readback(p, has_boq):
+    bits = [p.get("item_description") or "the item"]
+    if has_boq: bits.append("for the full BOQ package on file")
+    elif p.get("quantity"): bits.append(f"{p['quantity']} {p.get('uom') or ''}".strip())
+    where = p.get("project") or p.get("location")
+    if where: bits.append(f"at {where}")
+    if p.get("needed_by"): bits.append(f"needed by {p['needed_by']}")
+    return ", ".join(bits) + "."
+
+
+YES = {"yes", "yeah", "yep", "ok", "okay", "correct", "right", "sure", "sahi", "theek", "thik", "haan", "han", "ha", "haa", "ji", "bilkul", "hmm", "हाँ", "हां", "ठीक", "सही", "जी", "बिल्कुल", "হ্যাঁ", "হ্যা", "ঠিক", "আছে", "ஆம்", "சரி", "అవును", "సరే", "ಹೌದು", "ಸರಿ", "അതെ", "ശരി", "होय", "હા", "ਹਾਂ", "ହଁ"}
+NO = {"no", "nope", "nahi", "nahin", "na", "galat", "wrong", "नहीं", "नही", "गलत", "না", "নাহ", "ভুল", "இல்லை", "కాదు", "ಇಲ್ಲ", "അല്ല", "नाही", "ના", "ਨਹੀਂ", "ନା"}
+
+
+def confirm_intent(text: str):
+    """yes / no / change. Short, clear answers are read by rule in several languages; anything longer goes to the model."""
+    import re
+    toks = [t for t in re.split(r"[\s,.!?।]+", text.lower()) if t]
+    if toks and len(toks) <= 4:
+        y, n = bool(set(toks) & YES), bool(set(toks) & NO)
+        if y and not n: return "yes"
+        if n and not y: return "no"
+    try:
+        from .llm import ask_json
+        r = ask_json('A site engineer was asked "Is that correct?" about a material requirement. Classify their reply (any Indian language). Return JSON {"intent":"yes"|"no"|"change"}. '
+                     '"change" means they corrected a detail instead of just answering. Reply: "' + text.replace('"', "'") + '"', max_tokens=60)
+        return r.get("intent", "change")
+    except Exception:
+        return "change"
+
+
 def h_clarify(c):
     cid, d = c["id"], c["data"]; m = missing(d["parsed"], d["has_boq"])
     if m and d["clarify_rounds"] < 2:
@@ -106,6 +142,9 @@ def h_clarify(c):
         return False
     if m:
         log(cid, "agent", "note", "Proceeding with assumptions; still unknown: " + ", ".join(m))
+    if _wants_confirm(d) and not d.get("confirmed"):  # on a call the engineer must confirm what was understood before anything proceeds
+        say(cid, "engineer", "Let me confirm what I understood: " + readback(d["parsed"], d.get("has_boq")) + " Is that correct?")
+        log(cid, "agent", "asked", "Read the requirement back to the engineer for confirmation."); d["asked_open"] = True; _save(cid, "CONFIRM", "engineer", d); return False
     _save(cid, "MATCH", None, d); return True
 
 
@@ -284,7 +323,7 @@ def h_in_work(c):
     log(cid, "agent", "asked", "Work period elapsed: started the post-job check-in with the site engineer."); _save(cid, "CHECKIN", "engineer", d); return False
 
 
-HANDLERS = {"STOCK": h_stock, "STOCK_REVIEW": lambda c: False, "IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "MATCH_ASK": lambda c: False, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
+HANDLERS = {"STOCK": h_stock, "STOCK_REVIEW": lambda c: False, "IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "MATCH_ASK": lambda c: False, "CONFIRM": lambda c: False, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
 
 
 def advance(cid, max_steps=12):
@@ -305,6 +344,16 @@ def on_engineer_message(cid, text):
         if c["state"] == "MATCH_ASK" and d.get("asked_open"):
             d["parsed"] = merge(d["parsed"], text); d["asked_open"] = False
             log(cid, "agent", "parsed", "Updated the requirement from the reply; matching again.", d["parsed"]); _save(cid, "MATCH", None, d)
+        elif c["state"] == "CONFIRM" and d.get("asked_open"):
+            intent = confirm_intent(text)
+            if intent == "yes":
+                d["confirmed"] = True; d["asked_open"] = False; log(cid, "agent", "note", "Engineer confirmed the requirement."); _save(cid, "MATCH", None, d)
+            else:
+                d["asked_open"] = False
+                if intent == "change": d["parsed"] = merge(d["parsed"], text); log(cid, "agent", "parsed", "Updated the requirement from the correction.", d["parsed"])
+                else: say(cid, "engineer", "Please tell me what to change.")
+                _save(cid, "CLARIFY", None if intent == "change" else "engineer", d)
+                if intent == "no": d["asked_open"] = True; _save(cid, "CLARIFY", "engineer", d)
         elif c["state"] == "CLARIFY" and d.get("asked_open"):
             d["parsed"] = merge(d["parsed"], text); d["clarify_rounds"] += 1; d["asked_open"] = False
             boq = find_boq(d["parsed"], d["raw"] + " " + text); d["has_boq"] = bool(boq)
@@ -477,7 +526,7 @@ def engineer_inbound(text: str, channel="web", cid=None) -> int:
     """One entry point for every front door. A reply to an open question continues that case; anything else opens a new case."""
     if cid:
         c = _case(cid)
-        if c["state"] in ("CLARIFY", "MATCH_ASK") and c["data"].get("asked_open"):
+        if c["state"] in ("CLARIFY", "MATCH_ASK", "CONFIRM") and c["data"].get("asked_open"):
             on_engineer_message(cid, text); return cid
     ans = stock.answer(text)
     if ans:  # a question about stock, not a requirement: answer from the workbook, no case workflow

@@ -1,7 +1,7 @@
 import io, json, os, tempfile
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import openpyxl
@@ -11,6 +11,7 @@ from .normalise import ASSUMP
 from .tender import TENDER
 from .extract import extract_quote
 from .parse_req import parse, transcribe
+from . import voice
 
 ROOT = Path(__file__).resolve().parent
 app = FastAPI(title="Vinayak procurement agent")
@@ -20,7 +21,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master", "/master"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
+STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("C", "Call", "/call"), ("M", "Master", "/master"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
 @app.on_event("startup")
@@ -237,7 +238,7 @@ def eval_page(request: Request):
 
 # ---- the agent: cases
 from . import engine
-STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "MATCH_ASK": "asking the engineer about the item", "ITEM_REVIEW": "waiting for HOD (item code)", "STOCK": "checking stock", "STOCK_REVIEW": "waiting for HOD (stock)", "RFQ": "sending RFQs",
+STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "MATCH_ASK": "asking the engineer about the item", "CONFIRM": "confirming with the engineer", "ITEM_REVIEW": "waiting for HOD (item code)", "STOCK": "checking stock", "STOCK_REVIEW": "waiting for HOD (stock)", "RFQ": "sending RFQs",
                "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for HOD decision", "IN_WORK": "work in progress", "CHECKIN": "post-job check-in", "DECIDED": "closed"}
 T.env.globals["STATE_LABEL"] = STATE_LABEL
 
@@ -482,3 +483,56 @@ def stock_page(request: Request, q: str = ""):
     mv = [dict(r) for r in c.execute("select * from stock_moves order by id desc limit 10")]; c.close()
     for r in st: r["free"] = max(0, (r["qty"] or 0) - (r["reserved"] or 0))
     return page(request, "stock.html", "S", st=st, us=us, mv=mv, q=q, ans=stockmod.answer(q) if q else None)
+
+
+# ---- the calling agent
+import base64 as _b64
+from . import call as callmod
+
+
+@app.get("/call", response_class=HTMLResponse)
+def call_page(request: Request):
+    return page(request, "call.html", "C", langs=voice.LANGS)
+
+
+@app.post("/call/turn")
+async def call_turn(file: UploadFile = File(...), call_id: str = Form("")):
+    data = await file.read()
+    try:
+        r = callmod.turn(call_id or None, data, file.filename or "voice.webm")
+    except Exception as e:
+        return JSONResponse({"error": f"{type(e).__name__}: {e}"}, 400)
+    wav = r.pop("wav"); r["audio_b64"] = _b64.b64encode(wav).decode(); AUDIO[r["call_id"]] = wav
+    return r
+
+
+AUDIO: dict = {}
+
+
+@app.get("/call/audio/{call_id}.wav")
+def call_audio(call_id: str):
+    from fastapi.responses import Response
+    return Response(AUDIO.get(call_id, b""), media_type="audio/wav")
+
+
+# Telephony hook: point a phone number's voice webhook here (Twilio-style: Record, then Play the reply). UNTESTED without a provider account.
+@app.post("/telephony/voice")
+async def tel_voice(request: Request):
+    from fastapi.responses import Response
+    base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    wav = voice.tts("नमस्ते, मैं विनायक ग्रुप का प्रोक्योरमेंट असिस्टेंट हूँ। बताइए, किस सामग्री की ज़रूरत है? आप किसी भी भाषा में बोल सकते हैं।", "hi-IN"); AUDIO["greet"] = wav
+    twiml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Play>{base}/call/audio/greet.wav</Play><Record action="{base}/telephony/recording" maxLength="30" timeout="3" playBeep="true"/></Response>'
+    return Response(twiml, media_type="application/xml")
+
+
+@app.post("/telephony/recording")
+async def tel_recording(request: Request):
+    from fastapi.responses import Response
+    import httpx
+    form = await request.form(); sid = str(form.get("CallSid", "")); url = str(form.get("RecordingUrl", ""))
+    base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    auth = (os.environ.get("TWILIO_ACCOUNT_SID", ""), os.environ.get("TWILIO_AUTH_TOKEN", ""))
+    audio = httpx.get(url + ".wav", auth=auth if auth[0] else None, timeout=30, follow_redirects=True).content
+    r = callmod.turn(sid, audio, "call.wav"); AUDIO[sid + "r"] = r["wav"]
+    tail = "<Hangup/>" if r["done"] else f'<Record action="{base}/telephony/recording" maxLength="30" timeout="3" playBeep="true"/>'
+    return Response(f'<?xml version="1.0" encoding="UTF-8"?><Response><Play>{base}/call/audio/{sid}r.wav</Play>{tail}</Response>', media_type="application/xml")

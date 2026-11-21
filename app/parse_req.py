@@ -37,7 +37,7 @@ MERGE = """Current structured requirement (JSON):
 The engineer replied with this message answering the follow-up questions:
 \"{reply}\"
 
-Return the UPDATED requirement as one JSON object with exactly the same keys. Only fill or change a field if the reply states it. Keep the 'missing' list limited to what is still unknown."""
+Return the UPDATED requirement as one JSON object with exactly the same keys. Only fill or change a field if the reply states it. Keep every earlier detail unless the reply clearly contradicts it: a reply like \"it is for the floor\" ADDS a detail (the surface) to the existing item, it does not replace the item. Keep the 'missing' list limited to what is still unknown."""
 
 
 def merge(parsed: dict, reply: str) -> dict:

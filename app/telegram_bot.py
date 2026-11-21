@@ -25,9 +25,16 @@ def _chat(chat_id):
     c = db.con(); r = c.execute("select * from chats where chat_id=?", (chat_id,)).fetchone(); c.close(); return dict(r) if r else None
 
 
-def _set_chat(chat_id, role=None, case_id=None, name=None):
-    c = db.con(); cur = _chat(chat_id) or {"role": "engineer", "case_id": None, "name": name}
-    c.execute("insert or replace into chats(chat_id,role,case_id,name) values(?,?,?,?)", (chat_id, role or cur["role"], case_id if case_id is not None else cur["case_id"], name or cur["name"])); c.commit(); c.close()
+def _set_chat(chat_id, role=None, case_id=None, name=None, lang=None, voice_mode=None):
+    c = db.con(); cur = _chat(chat_id) or {"role": "engineer", "case_id": None, "name": name, "lang": None, "voice": 0}
+    c.execute("insert or replace into chats(chat_id,role,case_id,name,lang,voice) values(?,?,?,?,?,?)", (chat_id, role or cur["role"], case_id if case_id is not None else cur["case_id"], name or cur["name"],
+              lang or cur.get("lang"), cur.get("voice", 0) if voice_mode is None else int(voice_mode))); c.commit(); c.close()
+
+
+def send_voice(chat_id, text, lang):
+    """Speak a reply as a Telegram voice note in the caller's language (Sarvam TTS, converted to OGG/Opus)."""
+    ogg = voice.to_ogg_opus(voice.tts(text, lang))
+    httpx.post(f"{API}/bot{TOKEN}/sendVoice", data={"chat_id": chat_id}, files={"voice": ("reply.ogg", ogg, "audio/ogg")}, timeout=60)
 
 
 def handle_update(u: dict):
@@ -55,12 +62,15 @@ def handle_update(u: dict):
         try:
             path = tg("getFile", file_id=f["file_id"])["result"]["file_path"]
             data = httpx.get(f"{API}/file/bot{TOKEN}/{path}", timeout=40).content
-            text = voice.to_text(data, "voice.ogg")
-            send(chat_id, f"I heard: \"{text}\"")
+            text, lang = voice.stt(data, "voice.ogg")
+            _set_chat(chat_id, lang=lang, voice_mode=True)
+            send(chat_id, f"({voice.LANGS.get(lang, lang)}) I heard: \"{text}\"")
         except Exception as e:
             send(chat_id, f"Sorry, I could not read that voice note ({type(e).__name__}). Please type it."); return
     if not text: return
-    cid = engine.engineer_inbound(text, "telegram", (me or {}).get("case_id"))
+    was_voice = bool(m.get("voice") or m.get("audio"))
+    if not was_voice: _set_chat(chat_id, voice_mode=False)
+    cid = engine.engineer_inbound(text, "telegram (voice)" if was_voice else "telegram", (me or {}).get("case_id"))
     _set_chat(chat_id, case_id=cid)
 
 
@@ -77,8 +87,19 @@ def deliver():
             elif engine._case(m["case_id"])["data"].get("channel") != "telegram":
                 c.execute("update chat_messages set sent=2 where id=?", (m["id"],)); continue  # web-created case: simulator only
         if target is None: continue
-        resp = send(target, m["text"], json.loads(m["buttons"]) if m["buttons"] else None, m["case_id"])
+        text, spoken = m["text"], None
+        ch = c.execute("select lang, voice from chats where chat_id=?", (target,)).fetchone()
+        if m["to_role"] == "engineer" and ch and ch["voice"] and ch["lang"]:   # they spoke to us: answer in their language, text and voice
+            try:
+                from . import call
+                text = call.localize(m["text"], ch["lang"]); spoken = (text, ch["lang"])
+            except Exception as e:
+                print("telegram localize error:", repr(e), flush=True)
+        resp = send(target, text, json.loads(m["buttons"]) if m["buttons"] else None, m["case_id"])
         if resp.get("ok"): c.execute("update chat_messages set sent=1 where id=?", (m["id"],))
+        if spoken and resp.get("ok"):
+            try: send_voice(target, *spoken)
+            except Exception as e: print("telegram voice error:", repr(e), flush=True)
     c.commit(); c.close()
 
 

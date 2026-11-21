@@ -23,6 +23,14 @@ Today every step is a manual handoff: engineer to HOD, item code, RFQ emails, qu
 | Final call | **HOD**, with one chat message and Approve / Send back / Reject buttons. |
 | Vendor record | Agent builds it: it observes behaviour in every RFQ round, then asks the site engineer three one-tap questions after the work (on time? quality? rework or dispute?). |
 
+## The calling agent (voice, any Indian language)
+
+A site engineer can **speak** a requirement in Hindi, Bengali, Tamil, Telugu, Kannada, Malayalam, Marathi, Gujarati, Punjabi, Odia, English or Hinglish. Sarvam speech-to-text detects the language; the agent understands it, asks what is missing, **reads the requirement back and waits for a yes** (the engineer confirms before anything proceeds), and answers in the caller's language with Sarvam text-to-speech. Corrections ("no, it is for the floor") are merged and read back again.
+
+- **Browser call page** at `/call` (tap to speak; works on localhost or https). Latency is about 6 to 12 seconds a turn because each turn is speech-to-text, a model call and speech-to-text back; fine for a demo, slow for a real call.
+- **Telegram:** send a voice note; the bot replies with text and a voice note in your language.
+- **A real phone number:** `/telephony/voice` and `/telephony/recording` are a Twilio-style webhook (Record, then Play the reply) onto the same agent. **It is untested**: it needs a telephony provider account and number (Indian numbers need KYC), plus a public URL. Until then the browser page and Telegram carry the voice flow.
+
 ## Where it lives
 
 - **Telegram bot** (live): one bot, two roles. Everyone is a site engineer by default; `/hod` registers a chat as the HOD. Text and voice notes (Sarvam speech-to-text). Buttons are inline.
@@ -84,6 +92,8 @@ Open http://localhost:8000/sim. Run [Mailpit](https://mailpit.axllent.org) (`mai
 Claude (via OpenRouter) for quote reading, requirement structuring, merging vendor replies and the HOD note; Sarvam for speech-to-text; Claude Code for writing the code.
 
 ## Known limitations
+
+- The phone-number webhook is untested without a provider account. Voice quality and language detection are as good as Sarvam's; heavy code-mixing or noisy sites will cause misreadings, which the read-back and confirm step is there to catch.
 
 - Item matching is scored on a synthetic item list that carries the same kinds of mess as a real export; the cases were written by us. It covers one category (waterproofing); other categories need their own list, and Bengali needs a larger word table.
 - Open-request duplicates are checked on project, wording and quantity within 7 days (the test of the spec flag list is covered). A message with several items is split by the matcher, but the agent flow processes one item (or one BOQ package) per case.

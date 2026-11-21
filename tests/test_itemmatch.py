@@ -82,3 +82,24 @@ def test_open_request_duplicate_is_flagged(monkeypatch):
     b = engine.new_case("toilet floor waterproofing 520 sqft"); engine.advance(b)
     flags = [f["flag"] for f in engine._case(b)["data"]["match"]["flags"]]
     assert "open_request_duplicate" in flags
+
+
+def test_voice_call_confirms_before_proceeding(monkeypatch):
+    monkeypatch.setattr(engine.mailer, "send", lambda *a, **k: "stub")
+    parsed = {"item_description": "toilet floor waterproofing", "category": "waterproofing", "project": "Aquina", "location": None, "quantity": 500, "uom": "sqft", "needed_by": "10 Dec", "missing": []}
+    monkeypatch.setattr(engine, "parse", lambda t: dict(parsed))
+    cid = engine.engineer_inbound("toilet floor waterproofing 500 sqft Aquina 10 Dec", "call (voice)")
+    c = engine._case(cid); assert c["state"] == "CONFIRM" and c["waiting"] == "engineer"        # read back, nothing proceeds yet
+    assert "Let me confirm" in db.con().execute("select text from chat_messages where case_id=?", (cid,)).fetchone()["text"]
+    monkeypatch.setattr(engine, "merge", lambda p, r: {**p, "quantity": 800})
+    monkeypatch.setattr(engine, "confirm_intent", lambda t: "change")
+    engine.engineer_inbound("make it 800", "call (voice)", cid)
+    c = engine._case(cid); assert c["state"] == "CONFIRM" and c["data"]["parsed"]["quantity"] == 800   # corrected and read back again
+    monkeypatch.setattr(engine, "confirm_intent", lambda t: "yes")
+    engine.engineer_inbound("haan", "call (voice)", cid)
+    assert engine._case(cid)["state"] not in ("CONFIRM", "CLARIFY")                            # only now does it continue
+
+
+def test_confirm_intent_by_rule_in_several_languages():
+    for t in ["haan", "हाँ, सही है", "হ্যাঁ", "ஆம்", "yes ok"]: assert engine.confirm_intent(t) == "yes", t
+    for t in ["नहीं", "না", "galat", "no"]: assert engine.confirm_intent(t) == "no", t
