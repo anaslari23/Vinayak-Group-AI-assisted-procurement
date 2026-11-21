@@ -65,3 +65,13 @@ def test_engineer_stock_question_does_not_open_a_purchase_case():
 def test_supplies_check_in_the_comparison():
     found, missing = stock.supplies_check(["cement", "sand", "scaffolding", "water and electricity"], "Demo Heights")
     assert any("cement" in f for f in found) and any("scaffold" in f for f in found)
+
+
+def test_whatsapp_style_cement_request_uses_the_material_catalogue_and_checks_stock_first(monkeypatch):
+    monkeypatch.setattr(engine.mailer, "send", lambda *a, **k: "stub")
+    parsed = {"item_description": "Portland cement OPC", "category": "other", "project": "Demo Greens", "location": None, "quantity": 200, "uom": "bags", "needed_by": "5 Dec", "missing": []}
+    monkeypatch.setattr(engine, "parse", lambda t: dict(parsed))
+    cid = engine.new_case("need 200 bags cement at Demo Greens by 5 Dec"); engine.advance(cid)
+    c = engine._case(cid); assert c["data"]["item_code"] == "MAT.CEM.01" and c["state"] == "STOCK_REVIEW" and c["waiting"] == "hod"   # no 'code pending' question
+    msg = db.con().execute("select text from chat_messages where case_id=? and to_role='hod'", (cid,)).fetchone()["text"]
+    assert "Demo Heights" in msg and "transfer" in msg.lower()

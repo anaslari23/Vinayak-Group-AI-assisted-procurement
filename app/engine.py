@@ -84,6 +84,8 @@ def missing(parsed: dict, boq) -> list[str]:
 
 def shortlist(parsed: dict) -> list[dict]:
     cat = parsed.get("category") or "other"
+    m = stock.find_material((parsed.get("item_description") or ""))
+    if m and cat in ("other", "") and m["category"] in ("cement", "aggregate", "steel", "road"): cat = "road/civil"   # materials suppliers sit under road/civil in the vendor list
     c = db.con(); rows = [dict(r) for r in c.execute("select * from vendors where category=? order by registered desc, name", (cat,))]; c.close()
     return rows
 
@@ -196,6 +198,11 @@ def h_match(c):
     d["match"] = {k: r[k] for k in ("status", "candidates", "flags", "new_code_suggestion", "message", "questions_for_requester", "erp_loaded")}
     top = r["candidates"][0] if r["candidates"] else None
     st = r["status"]
+    if st == "needs_more_info" and "No code list loaded" in (r["message"] or ""):
+        mat = stock.find_material(text)          # not a works item: is it a catalogued stock material in the master workbook?
+        if mat:
+            d["item_code"] = mat["code"]; itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r, "auto (material catalogue, master workbook)", mat["code"])
+            log(cid, "agent", "matched", f"Material found in the master workbook catalogue: {mat['code']} {mat['name']}. No human needed; checking stock next."); _save(cid, "STOCK", None, d); return True
     if st == "matched_high":
         d["item_code"] = top["code"]; itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r, "auto (confident, no conflict)", top["code"])
         log(cid, "agent", "matched", f"Confident match: {top['code']} ({top['description'][:60]}), confidence {top['confidence']}. {top['why']}. No conflicts, so no human needed; logged.", {"confidence": top["confidence"]})

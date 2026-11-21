@@ -78,7 +78,7 @@ def inbound(p: dict) -> dict:
     jid, sender = p["jid"], p["sender"]; name = p.get("sender_name") or num(sender)
     if p.get("admins"): ADMINS[jid] = p["admins"]
     cur = c.execute("insert into wa_messages(msg_id,jid,group_name,sender,sender_name,text,kind) values(?,?,?,?,?,?,?)", (p["msg_id"], jid, p.get("group_name"), sender, name, text, kind)); c.commit(); mid = cur.lastrowid; c.close()
-    if not text: return {"ok": True, "handled": "empty"}
+    if not text or re.fullmatch(r"[\d:]+@(s\.whatsapp\.net|lid|g\.us)", text.strip()): return {"ok": True, "handled": "ignored"}   # empty, or just an id with no words
     mine = set(p.get("my_ids") or []); me_nums = {num(x) for x in mine}
     addressed = (not p.get("is_group")) or bool(TRIGGER.match(text)) or any(num(m) in me_nums for m in p.get("mentioned", [])) or (p.get("quoted_participant") and num(p["quoted_participant"]) in me_nums)
     body = TRIGGER.sub("", text, count=1).strip() or text
@@ -137,7 +137,9 @@ def flush_cases():
     for m in rows:
         text, mentions = m["text"], []
         if m["to_role"] == "hod":
-            mentions = ADMINS.get(m["jid"], [])
+            mine = {num(STATUS.get("me") or ""), num(STATUS.get("lid") or "")} - {""}
+            adm = [a for a in ADMINS.get(m["jid"], []) if num(a) not in mine]
+            mentions = [a for a in adm if a.endswith("@s.whatsapp.net")] or adm       # one tag per person: phone ids, never the bot itself
             text = " ".join("@" + num(a) for a in mentions) + (" " if mentions else "") + f"[case #{m['case_id']}] " + text
         else:
             mentions = [m["sender"]]; text = "@" + num(m["sender"]) + " " + text

@@ -789,7 +789,7 @@ async def wa_ack(request: Request):
 @app.post("/whatsapp/status")
 async def wa_status(request: Request):
     if not _bridge_ok(request): return JSONResponse({"error": "forbidden"}, 403)
-    j = await request.json(); wa.STATUS.update({"state": j.get("state"), "qr": j.get("qr") if j.get("state") == "qr" else None, "me": j.get("me") or wa.STATUS.get("me")}); return {"ok": True}
+    j = await request.json(); wa.STATUS.update({"state": j.get("state"), "qr": j.get("qr") if j.get("state") == "qr" else None, "me": j.get("me") or wa.STATUS.get("me"), "lid": j.get("lid") or wa.STATUS.get("lid")}); return {"ok": True}
 
 
 @app.get("/whatsapp", response_class=HTMLResponse)

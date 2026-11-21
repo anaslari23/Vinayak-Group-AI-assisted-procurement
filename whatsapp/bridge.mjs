@@ -26,6 +26,7 @@ async function groupInfo(sock, jid) {
   } catch { return hit || { name: '', admins: [] } }
 }
 
+let current = null, ready = false
 async function start() {
   const { state, saveCreds } = await useMultiFileAuthState('auth')
   const { version } = await fetchLatestBaileysVersion()
@@ -34,8 +35,8 @@ async function start() {
 
   sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) { console.log('QR ready: open http://127.0.0.1:8000/whatsapp and scan it with the spare number (WhatsApp > Linked devices)'); await post('/whatsapp/status', { state: 'qr', qr: await QRCode.toDataURL(qr, { width: 320, margin: 1 }) }) }
-    if (connection === 'open') { console.log('connected as', sock.user?.id); await post('/whatsapp/status', { state: 'open', me: sock.user?.id, lid: sock.user?.lid }) }
-    if (connection === 'close') {
+    if (connection === 'open') { ready = true; console.log('connected as', sock.user?.id); await post('/whatsapp/status', { state: 'open', me: sock.user?.id, lid: sock.user?.lid }) }
+    if (connection === 'close') { ready = false;
       const code = lastDisconnect?.error?.output?.statusCode
       await post('/whatsapp/status', { state: 'closed', code })
       if (code === DisconnectReason.loggedOut) { console.log('logged out: delete the whatsapp/auth folder and restart to scan again'); process.exit(1) }
@@ -60,20 +61,23 @@ async function start() {
     }
   })
 
-  // outbox: the agent server queues replies; we deliver them
-  setInterval(async () => {
-    try {
-      const r = await fetch(APP + '/whatsapp/outbox', { headers: H }); if (!r.ok) return
-      const { items } = await r.json(); const done = []
-      for (const it of items || []) {
-        try {
-          await sock.sendMessage(it.jid, { text: it.text, mentions: it.mentions || [] })
-          if (it.ogg_b64) await sock.sendMessage(it.jid, { audio: Buffer.from(it.ogg_b64, 'base64'), mimetype: 'audio/ogg; codecs=opus', ptt: true })
-          done.push(it.id)
-        } catch (e) { console.log('send error', String(e).slice(0, 200)) }
-      }
-      if (done.length) await post('/whatsapp/ack', { ids: done })
-    } catch {}
-  }, 2000)
+  current = sock
 }
 start()
+
+// outbox: the agent server queues replies; we deliver them with whichever socket is connected right now
+setInterval(async () => {
+  if (!current || !ready) return
+  try {
+    const r = await fetch(APP + '/whatsapp/outbox', { headers: H }); if (!r.ok) return
+    const { items } = await r.json(); const done = []
+    for (const it of items || []) {
+      try {
+        await current.sendMessage(it.jid, { text: it.text, mentions: it.mentions || [] })
+        if (it.ogg_b64) await current.sendMessage(it.jid, { audio: Buffer.from(it.ogg_b64, 'base64'), mimetype: 'audio/ogg; codecs=opus', ptt: true })
+        done.push(it.id)
+      } catch (e) { console.log('send error', String(e).slice(0, 200)); break }
+    }
+    if (done.length) await post('/whatsapp/ack', { ids: done })
+  } catch {}
+}, 2000)
