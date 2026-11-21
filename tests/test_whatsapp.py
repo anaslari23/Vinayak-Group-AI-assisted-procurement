@@ -59,3 +59,8 @@ def test_replies_are_localised_for_a_voice_sender_and_status_works(monkeypatch):
     wa.inbound(msg(7, "", audio_b64="AAAA"))
     out = wa.outbox(); assert any(o["text"].find("[hi-IN]") >= 0 for o in out) and any(o["ogg_b64"] for o in out)   # Hindi text and a voice note back
     wa.inbound(msg(8, "agent status", mentioned=[])); assert any("Cases from this group" in o["text"] for o in wa.outbox())
+
+
+def test_a_hindi_message_is_judged_by_the_model_not_dropped_by_the_english_prefilter():
+    r = wa.inbound(msg(20, "डेमो विला के लिए दो सौ बैग सीमेंट चाहिए 10 दिसंबर तक"))
+    assert r["handled"] == "noticed a requirement"

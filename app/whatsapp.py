@@ -26,8 +26,14 @@ def num(jid): return jid.split("@")[0].split(":")[0]
 def requirement_like(text: str):
     """Cheap prefilter, then a model check. Returns a short summary or None."""
     t = text.lower(); words = set(re.findall(r"[a-z]+", t))
+    if re.search(r"[^\x00-\x7f]", text) and len(text) >= 8:        # Hindi, Bengali, Tamil...: the keyword prefilter only knows English, so let the model judge
+        return _model_check(text)
     mats = {w for m in stock.materials() for w in re.findall(r"[a-z]+", (m["name"] + " " + (m["synonyms"] or "")).lower())}
     if not (QTY.search(t) or (NEED.search(t) and (words & (DOMAIN | mats)))) or len(text) < 12: return None
+    return _model_check(text)
+
+
+def _model_check(text):
     try:
         r = ask_json('This is a message in a site-engineers WhatsApp group (any Indian language, maybe Hinglish). Is it someone asking for material or work to be procured (a requirement), '
                      'as opposed to chat, a status update or a question? Return JSON {"is_requirement": true|false, "summary": "one short English phrase"}.\nMESSAGE: ' + text.replace('"', "'"), max_tokens=120)
