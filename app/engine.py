@@ -126,8 +126,15 @@ def h_match(c):
         d["item_code"] = top["code"]
         log(cid, "agent", "matched", f"Confident match: {top['code']} ({top['descr'][:60]}). Near-duplicates / variants: {dups}. No human needed.", {"score": top["score"]})
         _save(cid, "RFQ", None, d); return True
-    opts = [{"label": f"Use {x['code']}", "data": f"item:{x['code']}"} for x in m["candidates"][:2]] + [{"label": f"Create new ({m.get('suggested_code', {}).get('code', 'new code')})", "data": "item:new"}]
-    say(cid, "hod", f"Item code needs your call for: {d['parsed'].get('item_description')}.\nBest candidates: " + "; ".join(f"{x['code']} ({x['score']})" for x in m["candidates"][:2]) + f". Possible duplicates: {dups}.", opts)
+    nothing_close = not top or top["score"] < 50
+    new_label = f"Create new ({m.get('suggested_code', {}).get('code', 'new code')})"
+    if nothing_close:  # no similar code exists at all: do not offer irrelevant candidates
+        opts = [{"label": new_label, "data": "item:new"}]
+        msg = f"New item: {d['parsed'].get('item_description')} ({d['parsed'].get('quantity') or '?'} {d['parsed'].get('uom') or ''}). Nothing similar exists in the item master, and I checked for duplicates. I suggest creating {m.get('suggested_code', {}).get('code')} (numbering is an assumption)."
+    else:
+        opts = [{"label": f"Use {x['code']}", "data": f"item:{x['code']}"} for x in m["candidates"][:2]] + [{"label": new_label, "data": "item:new"}]
+        msg = f"Item code needs your call for: {d['parsed'].get('item_description')}.\nBest candidates: " + "; ".join(f"{x['code']} ({x['score']})" for x in m["candidates"][:2]) + f". Possible duplicates: {dups}."
+    say(cid, "hod", msg, opts)
     log(cid, "agent", "escalated", f"Match was {m['verdict']} (not confident), so I asked the HOD to choose the item code.")
     _save(cid, "ITEM_REVIEW", "hod", d); return False
 

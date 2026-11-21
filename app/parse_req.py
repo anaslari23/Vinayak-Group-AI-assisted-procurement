@@ -9,6 +9,7 @@ Return one JSON object only:
  "quantity": number|null, "uom": str|null, "needed_by": str|null,
  "missing": [str]}   // 'missing' lists what a procurement HOD would have to ask back (quantity, unit, location, date...)
 Do not invent values; use null when absent.
+The message may come from speech-to-text and contain mis-hearings (for example "milliliter" for "millimetre", "sqr feet"); silently correct obvious ones. Keep item_description a clean short noun phrase with no commentary; put any doubt in "missing".
 
 MESSAGE:
 """
