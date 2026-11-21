@@ -1,6 +1,9 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vinayak procurement agent</title><link rel="stylesheet" href="/static/style.css"></head><body>
-<header><a class="brand" href="/"><b>Vinayak procurement agent</b></a>
-<nav class="steps">{% for n,label,url in steps %}<a href="{{url}}" class="{{'on' if active==n}}">{{n}} · {{label}}</a>{% endfor %}</nav>
-<span class="mut" style="margin-left:auto;font-size:12px">Recommends only. A human decides. <a href="/mail">test mail log</a> · <a href="/erp-cleanup">ERP clean-up</a> · <a href="/eval">eval</a></span></header>
-<main>{% block body %}{% endblock %}</main></body></html>
+<title>Vinayak procurement agent</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='sans-serif'%3EV%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css"></head><body>
+<header><div class="top"><a class="brand" href="/"><span class="logo">V</span><b>Vinayak procurement agent</b></a>
+<span class="rule">Recommends only. A human decides.</span></div>
+<nav class="main">{% for n,label,url in nav %}<a href="{{url}}" class="{{'on' if active==n}}">{{label}}</a>{% endfor %}<a href="/mail">Mail log</a></nav>
+<nav class="pipe"><span class="mut">Buying steps:</span>{% for n,label,url in steps %}<a href="{{url}}" class="{{'on' if active==n}}">{{n}} · {{label}}</a>{% endfor %}</nav></header>
+<main>{% block body %}{% endblock %}</main>
+<footer>Synthetic demo data · built for the Vinayak Group procurement problem · no orders or payments are ever made by this system</footer></body></html>

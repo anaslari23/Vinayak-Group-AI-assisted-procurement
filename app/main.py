@@ -21,7 +21,8 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("C", "Call", "/call"), ("M", "Master", "/master"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
+NAV = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
+STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
 @app.on_event("startup")
@@ -41,7 +42,7 @@ def boot():
 
 
 def page(request, name, active, **ctx):
-    return T.TemplateResponse(request, name, {"steps": STEPS, "active": active, **ctx})
+    return T.TemplateResponse(request, name, {"steps": STEPS, "nav": NAV, "active": active, **ctx})
 
 
 def all_quotes(case_id=0):
@@ -233,7 +234,7 @@ def eval_page(request: Request):
     from .evalq import run
     qs = [json.loads(f.read_text()) for d in ("cache", "eval_cache") for f in sorted((DATA_DIR / d).glob("*.json"))]
     ie = DATA_DIR / "item_eval.json"
-    return page(request, "eval.html", "", res=run(qs), synthetic=TENDER.get("synthetic"), ie=json.loads(ie.read_text()) if ie.exists() else None)
+    return page(request, "eval.html", "L", res=run(qs), synthetic=TENDER.get("synthetic"), ie=json.loads(ie.read_text()) if ie.exists() else None)
 
 
 # ---- the agent: cases
@@ -422,7 +423,7 @@ def erp_cleanup(request: Request):
     rep = itemmatch.cleanup_report(itemmatch.flag_hits())
     c = db.con(); syn = [dict(r) for r in c.execute("select * from synonyms order by word")]; ch = [dict(r) for r in c.execute("select * from item_choices order by id desc limit 15")]
     log = [dict(r) for r in c.execute("select * from item_log order by id desc limit 15")]; c.close()
-    return page(request, "cleanup.html", "", rep=rep, syn=syn, ch=ch, log=log, loaded=itemmatch.erp().loaded, rows=len(itemmatch.erp().rows))
+    return page(request, "cleanup.html", "E", rep=rep, syn=syn, ch=ch, log=log, loaded=itemmatch.erp().loaded, rows=len(itemmatch.erp().rows))
 
 
 @app.get("/erp-cleanup.csv")
