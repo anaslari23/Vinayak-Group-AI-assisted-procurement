@@ -1,0 +1,102 @@
+{
+ "dataset": "demo",
+ "erp_rows": 66,
+ "overall": {
+  "cases": 36,
+  "status_correct": [
+   36,
+   36
+  ],
+  "top1": [
+   23,
+   23
+  ],
+  "top3": [
+   23,
+   23
+  ],
+  "flags_found": [
+   6,
+   6
+  ],
+  "false_confidence": 0,
+  "right_question": [
+   12,
+   12
+  ]
+ },
+ "spec14": {
+  "cases": 14,
+  "status_correct": [
+   14,
+   14
+  ],
+  "top1": [
+   9,
+   9
+  ],
+  "top3": [
+   9,
+   9
+  ],
+  "flags_found": [
+   6,
+   6
+  ],
+  "false_confidence": 0,
+  "right_question": [
+   5,
+   5
+  ]
+ },
+ "own_visible": {
+  "cases": 10,
+  "status_correct": [
+   10,
+   10
+  ],
+  "top1": [
+   10,
+   10
+  ],
+  "top3": [
+   10,
+   10
+  ],
+  "flags_found": [
+   0,
+   0
+  ],
+  "false_confidence": 0,
+  "right_question": [
+   0,
+   0
+  ]
+ },
+ "own_hidden": {
+  "cases": 12,
+  "status_correct": [
+   12,
+   12
+  ],
+  "top1": [
+   4,
+   4
+  ],
+  "top3": [
+   4,
+   4
+  ],
+  "flags_found": [
+   0,
+   0
+  ],
+  "false_confidence": 0,
+  "right_question": [
+   7,
+   7
+  ]
+ },
+ "mean_seconds": 0.002,
+ "failures": []
+}

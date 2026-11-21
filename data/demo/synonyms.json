@@ -1,0 +1,14 @@
+{
+ "bathroom": "toilet",
+ "bath": "toilet",
+ "washroom": "toilet",
+ "wc": "toilet",
+ "chhat": "roof",
+ "chat": "roof",
+ "terrace": "roof",
+ "sink": "kitchen",
+ "rooftop": "roof",
+ "tank": "tank",
+ "balkoni": "balcony",
+ "pani": "water"
+}

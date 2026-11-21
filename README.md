@@ -6,7 +6,7 @@ Built for the Vinayak Group problem statement "AI-assisted procurement: from sit
 
 - **Deployed link:** _to be added_
 - **Demo video (2 min):** _to be added_
-- **Eval:** 360 / 360 fields correct across 12 quotes in 4 layouts (clean table, letterhead, email-style, handwritten scan), and 12 / 12 landed-cost totals matching a hand calculation. See [limits](#known-limitations).
+- **Eval:** item-code matching 36 / 36 statuses right, 0 confidently wrong, on 36 requests (the 14 from the Step 2 spec plus our own; written by us, so a small friendly set). Quote extraction 360 / 360 fields correct across 12 quotes in 4 layouts (clean table, letterhead, email-style, handwritten scan), and 12 / 12 landed-cost totals matching a hand calculation. See [limits](#known-limitations).
 
 ## Why an agent, not a form
 
@@ -15,7 +15,7 @@ Today every step is a manual handoff: engineer to HOD, item code, RFQ emails, qu
 | Step | Who does it here |
 |---|---|
 | Capture requirement (text, WhatsApp-style message, voice note) | Agent. Asks the engineer a follow-up in the same chat if something is missing. |
-| Item code | Agent matches against the item master and flags near-duplicates. Asks the HOD only when it is not confident or the item is new. |
+| Item code | Agent runs the Step 2 matcher (below). It proceeds alone only on an exact, conflict-free match, logs it, and otherwise asks: the engineer for missing detail, or the HOD with the top 3 and one tap. |
 | RFQs | Agent picks vendors by category and sends (test inboxes only). |
 | Collecting quotes | Agent watches the inbox, reads each reply, asks vendors for missing GST, payment terms, unclear rates or unit mismatches, and chases silent vendors after 24 h. |
 | Comparative | Agent re-prices every quote at the tender quantities on a like-for-like landed cost. |
@@ -38,6 +38,15 @@ cp .env.example .env   # add OPENROUTER_API_KEY, SARVAM_API_KEY, TELEGRAM_BOT_TO
 ```
 
 Open http://localhost:8000/sim. Run [Mailpit](https://mailpit.axllent.org) (`mailpit`, inbox UI at :8025) to see real RFQ, follow-up and vendor-reply emails; without it the app falls back to injecting replies directly. Only one process may poll a Telegram bot at a time, so set `TELEGRAM_BOT_TOKEN` on one host only.
+
+## Item-code matching (Step 2, built to the Step 2 spec)
+
+`app/itemmatch.py`, deterministic and explainable. It cleans the ERP list at load (typos, stars, brackets, long specifications cut to a title), groups it, and flags the mess a real export has: repeated rows, one code with two meanings, one work under many codes, look-alike codes, a site-sheet code that means something else in the ERP. A request is cleaned (Hinglish and site words via an editable synonym table, typos), split into parts (area, surface, side, height cues) and every ERP group is scored on word overlap, fuzzy spelling and part agreement. Result: top 3 with confidence and a reason, one of five statuses (`matched_high`, `needs_back_office_confirm`, `needs_more_info`, `suggest_new_code`, `conflict_in_erp`), flags, and either a question back or a draft new code (never created, numbering follows the list's own pattern).
+
+- **Auto on exact:** the agent proceeds without a person only when the code is exact and conflict-free (for example a site-sheet code that agrees with the ERP). Everything else goes to a person. Floor versus wall can never swap.
+- **Memory and audit:** the back office's picks are saved and used first next time; every run is logged append-only (who asked, ERP load date, candidates, flags, who approved which code). `/erp-cleanup` lists every duplicate and conflict sorted by how often requests hit it, with a CSV, and has the synonym editor.
+- **Never writes to Farvision.** It reads an exported list and recommends.
+- **Out of category** (road, steel, cement): says "no code list loaded for this category" and does not invent a code. Adding a category means dropping in one more list.
 
 ## How the agent works
 
@@ -75,6 +84,9 @@ Open http://localhost:8000/sim. Run [Mailpit](https://mailpit.axllent.org) (`mai
 Claude (via OpenRouter) for quote reading, requirement structuring, merging vendor replies and the HOD note; Sarvam for speech-to-text; Claude Code for writing the code.
 
 ## Known limitations
+
+- Item matching is scored on a synthetic item list that carries the same kinds of mess as a real export; the cases were written by us. It covers one category (waterproofing); other categories need their own list, and Bengali needs a larger word table.
+- A message with several items is split by the matcher, but the agent flow processes one item (or one BOQ package) per case.
 
 - The agent reads quotes and compares only for packages where it holds a BOQ. For a single-item requirement without a BOQ (for example the road-work demo) it stops after sending RFQs; generic quote reading is not built.
 - The eval set is small and generated, with clean layouts and one handwriting style. Real quotes will be messier; low-confidence reads are flagged and sent back to the vendor as questions instead of being trusted.

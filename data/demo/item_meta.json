@@ -1,0 +1,76 @@
+{
+ "prefix": "WPD",
+ "aliases": {
+  "toilet_floor": [
+   "WPD.01"
+  ],
+  "toilet_floor_family": [
+   "WPD.01",
+   "WPD.01.A",
+   "WPD.01.B"
+  ],
+  "toilet_wall_family": [
+   "WPD.02",
+   "WPD.02.A",
+   "WPD.02.B"
+  ],
+  "balcony_wall_family": [
+   "WPD.07",
+   "WPD.07.A",
+   "WPD.07.B"
+  ],
+  "nozzle": [
+   "WPD.11.B",
+   "WPD.11.B_"
+  ],
+  "kitchen_floor_B": [
+   "WPD.04.B",
+   "WPD.03.B"
+  ],
+  "punning": [
+   "STPD_UGR_01",
+   "W.PD.04"
+  ],
+  "expansion": [
+   "WPD.EXP.01"
+  ],
+  "pump": [
+   "WPD.RC",
+   "WPD.RC1",
+   "WPD.RC.1"
+  ],
+  "roof": [
+   "WPD.09.B"
+  ],
+  "kitchen_floor_family": [
+   "WPD.04",
+   "WPD.04.A",
+   "WPD.04.B"
+  ],
+  "kitchen_wall_family": [
+   "WPD.05",
+   "WPD.05.A",
+   "WPD.05.B"
+  ],
+  "balcony_floor_family": [
+   "WPD.06",
+   "WPD.06.A",
+   "WPD.06.B"
+  ],
+  "ot_family": [
+   "WPD.08.A",
+   "WPD.08.B",
+   "WPD.07.B"
+  ],
+  "pressure_grout": [
+   "WPD.08"
+  ],
+  "screed_roof": [
+   "W.PD.08",
+   "WPD.12.C"
+  ],
+  "depression": [
+   "WPD.03"
+  ]
+ }
+}

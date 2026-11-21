@@ -2,5 +2,5 @@
 <title>Vinayak procurement agent</title><link rel="stylesheet" href="/static/style.css"></head><body>
 <header><a class="brand" href="/"><b>Vinayak procurement agent</b></a>
 <nav class="steps">{% for n,label,url in steps %}<a href="{{url}}" class="{{'on' if active==n}}">{{n}} · {{label}}</a>{% endfor %}</nav>
-<span class="mut" style="margin-left:auto;font-size:12px">Recommends only. A human decides. <a href="/mail">test mail log</a> · <a href="/eval">eval</a></span></header>
+<span class="mut" style="margin-left:auto;font-size:12px">Recommends only. A human decides. <a href="/mail">test mail log</a> · <a href="/erp-cleanup">ERP clean-up</a> · <a href="/eval">eval</a></span></header>
 <main>{% block body %}{% endblock %}</main></body></html>

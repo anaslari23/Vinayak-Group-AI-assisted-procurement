@@ -1,0 +1,351 @@
+[
+ {
+  "id": "S1",
+  "text": "waterproofing at toilet floor",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_floor_family"
+  ],
+  "expect_flags": [
+   "erp_same_work_many_codes",
+   "suffix_variant",
+   "erp_exact_repeat"
+  ],
+  "hidden": false
+ },
+ {
+  "id": "S2",
+  "text": "toilet wall waterproofing upto 450 mm",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_wall_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S3",
+  "text": "nozzle grouting if required",
+  "expect_status": "conflict_in_erp",
+  "expect_top": [
+   "nozzle"
+  ],
+  "expect_flags": [
+   "code_text_mismatch"
+  ],
+  "hidden": false
+ },
+ {
+  "id": "S4",
+  "text": "kitchen floor waterproofing, flat B",
+  "expect_status": "conflict_in_erp",
+  "expect_top": [
+   "kitchen_floor_B"
+  ],
+  "expect_flags": [
+   "erp_conflicting_code"
+  ],
+  "hidden": false
+ },
+ {
+  "id": "S5",
+  "text": "neat cement punning work",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "punning"
+  ],
+  "expect_flags": [
+   "erp_same_work_many_codes",
+   "erp_lookalike_code"
+  ],
+  "hidden": false
+ },
+ {
+  "id": "S6",
+  "text": "expansion joint treatment",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S7",
+  "text": "balcony wall waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "balcony_wall_family"
+  ],
+  "expect_flags": [
+   "erp_conflicting_code"
+  ],
+  "hidden": false
+ },
+ {
+  "id": "S8",
+  "text": "bathroom ka floor ka waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_floor_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S9",
+  "text": "concrete pump for screed",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "pump"
+  ],
+  "expect_flags": [
+   "erp_lookalike_code"
+  ],
+  "hidden": false
+ },
+ {
+  "id": "S10",
+  "text": "terrace waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "roof"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S11",
+  "text": "waterproofing",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S12",
+  "text": "60mm paver block 1500 sqm",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S13",
+  "text": "steel bars",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "S14",
+  "text": "hello",
+  "expect_status": "no_match",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O1",
+  "text": "toilet ka floor waterproofing lagana hai 13400 sqft",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_floor_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O2",
+  "text": "waterprofing at toilet wall",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_wall_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O3",
+  "text": "kitchn wall waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "kitchen_wall_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O4",
+  "text": "balcony floor waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "balcony_floor_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O5",
+  "text": "OT floor and wall waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "ot_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O6",
+  "text": "kitchen floor waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "kitchen_floor_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O7",
+  "text": "wc floor waterproofing flat A",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_floor_family"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O8",
+  "text": "toilet depression channel waterproofing compound",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "depression"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O9",
+  "text": "pressure grouting inside RCC floor and wall",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "pressure_grout"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O10",
+  "text": "75 mm screed concrete above roof",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "screed_roof"
+  ],
+  "expect_flags": [],
+  "hidden": false
+ },
+ {
+  "id": "O11",
+  "text": "waterproofing at kitchen",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O12",
+  "text": "balcony waterproofing",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O13",
+  "text": "TMT steel 12 mm 500 kg",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O14",
+  "text": "test",
+  "expect_status": "no_match",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O15",
+  "text": "kerb stone laying 240 rmt",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O16",
+  "text": "hi can you help",
+  "expect_status": "no_match",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O17",
+  "text": "bathroom wall waterproofing 450 mm height",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "toilet_wall_family"
+  ],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O18",
+  "text": "chhat waterproofing",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "roof"
+  ],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O19",
+  "text": "punning work neat cement",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "punning"
+  ],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O20",
+  "text": "grouting",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O21",
+  "text": "cement 53 grade OPC 200 bags",
+  "expect_status": "needs_more_info",
+  "expect_top": [],
+  "expect_flags": [],
+  "hidden": true
+ },
+ {
+  "id": "O22",
+  "text": "concrete pumping charges screed",
+  "expect_status": "needs_back_office_confirm",
+  "expect_top": [
+   "pump"
+  ],
+  "expect_flags": [],
+  "hidden": true
+ }
+]

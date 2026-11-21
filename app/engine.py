@@ -5,7 +5,7 @@ import json, threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from rapidfuzz import fuzz
-from . import db, items, rfq, mailer, recommend
+from . import db, itemmatch, rfq, mailer, recommend
 from .extract import extract_quote
 from .parse_req import parse, merge
 from .scoring import rank, reasons, W
@@ -109,33 +109,57 @@ def h_clarify(c):
     _save(cid, "MATCH", None, d); return True
 
 
+def _flag_text(r, n=3):
+    seen, out = set(), []
+    for f in r["flags"]:
+        if f["flag"] == "quantity_missing" or f["flag"] in seen: continue
+        seen.add(f["flag"]); out.append(f["message"][:150])
+    return " | ".join(out[:n])
+
+
 def h_match(c):
     cid, d = c["id"], c["data"]
-    if d.get("has_boq"):  # the requirement is a whole BOQ package: check each BOQ line's code against the master instead of asking anyone
-        ok, vari = 0, set()
-        for tl in TENDER["lines"]:
-            m = items.match(tl["title"]); top = m["candidates"][0]
-            ok += top["code"] == tl["item_code"]; vari |= {x["code"] for x in m["duplicates_of_best"]}
-        d["item_code"] = "BOQ package " + ", ".join(l["item_code"] for l in TENDER["lines"][:1]) + "..."
-        log(cid, "agent", "matched", f"BOQ package: {ok} of {len(TENDER['lines'])} line codes confirmed against the item master. A/B variants and near-duplicates flagged for later clean-up: {', '.join(sorted(vari)[:6])}. No human needed.")
+    if d.get("has_boq"):  # a whole BOQ package: the site sheet already names a code per line, so check each against the ERP
+        res = [(tl, itemmatch.match(tl["title"], unit=tl["unit"], site_code_hint=tl["item_code"], quantity=tl["qty"], project=TENDER["project"], request_id=f"case-{cid}")) for tl in TENDER["lines"]]
+        bad = [(tl, r) for tl, r in res if r["status"] != "matched_high"]
+        for tl, r in res: itemmatch.log_run(f"case-{cid}", "engineer", TENDER["project"], r, "auto (exact site-sheet code)" if r["status"] == "matched_high" else None, tl["item_code"] if r["status"] == "matched_high" else None)
+        d["item_code"] = "BOQ package " + TENDER["lines"][0]["item_code"] + "..."
+        if not bad:
+            variants = sorted({x["code"] for _, r in res for x in r["candidates"]} - {tl["item_code"] for tl in TENDER["lines"]})
+            log(cid, "agent", "matched", f"BOQ package: all {len(res)} lines matched the site sheet's own code with no conflict (auto, logged). Variants and near-duplicates for later clean-up: {', '.join(variants[:6])}.")
+            _save(cid, "RFQ", None, d); return True
+        lines = "\n".join(f"- line {tl['sl']} {tl['title']}: {r['status']}. {r['message'] or _flag_text(r)}" for tl, r in bad)
+        say(cid, "hod", f"BOQ package for {TENDER['project']}: {len(res) - len(bad)} of {len(res)} lines matched the site sheet's code exactly. Please look at:\n{lines}", [{"label": "Use the site-sheet codes", "data": "item:boq"}, {"label": "Hold", "data": "item:hold"}])
+        log(cid, "agent", "escalated", f"{len(bad)} BOQ line(s) are not clean matches, so I asked the HOD."); _save(cid, "ITEM_REVIEW", "hod", d); return False
+    text = d["parsed"].get("item_description") or d["raw"]
+    r = itemmatch.match(text, unit=d["parsed"].get("uom"), quantity=d["parsed"].get("quantity"), project=d["parsed"].get("project"), request_id=f"case-{cid}")
+    d["match"] = {k: r[k] for k in ("status", "candidates", "flags", "new_code_suggestion", "message", "questions_for_requester", "erp_loaded")}
+    top = r["candidates"][0] if r["candidates"] else None
+    st = r["status"]
+    if st == "matched_high":
+        d["item_code"] = top["code"]; itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r, "auto (confident, no conflict)", top["code"])
+        log(cid, "agent", "matched", f"Confident match: {top['code']} ({top['description'][:60]}), confidence {top['confidence']}. {top['why']}. No conflicts, so no human needed; logged.", {"confidence": top["confidence"]})
         _save(cid, "RFQ", None, d); return True
-    m = items.match(d["parsed"].get("item_description") or d["raw"]); d["match"] = m
-    top = m["candidates"][0] if m["candidates"] else None
-    dups = ", ".join(x["code"] for x in m["duplicates_of_best"]) or "none"
-    if m["verdict"] == "match":
-        d["item_code"] = top["code"]
-        log(cid, "agent", "matched", f"Confident match: {top['code']} ({top['descr'][:60]}). Near-duplicates / variants: {dups}. No human needed.", {"score": top["score"]})
-        _save(cid, "RFQ", None, d); return True
-    nothing_close = not top or top["score"] < 50
-    new_label = f"Create new ({m.get('suggested_code', {}).get('code', 'new code')})"
-    if nothing_close:  # no similar code exists at all: do not offer irrelevant candidates
-        opts = [{"label": new_label, "data": "item:new"}]
-        msg = f"New item: {d['parsed'].get('item_description')} ({d['parsed'].get('quantity') or '?'} {d['parsed'].get('uom') or ''}). Nothing similar exists in the item master, and I checked for duplicates. I suggest creating {m.get('suggested_code', {}).get('code')} (numbering is an assumption)."
+    if st == "no_match":
+        say(cid, "engineer", r["message"]); itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r)
+        log(cid, "agent", "closed", "Nothing to match in that message; asked the engineer what is needed."); _save(cid, "DECIDED", None, d); return False
+    if st == "needs_more_info" and "No code list loaded" not in (r["message"] or ""):
+        if d.get("match_rounds", 0) < 2:
+            d["match_rounds"] = d.get("match_rounds", 0) + 1; d["asked_open"] = True
+            say(cid, "engineer", " ".join(r["questions_for_requester"])); itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r)
+            log(cid, "agent", "asked", "Item match needs more detail: " + " ".join(r["questions_for_requester"])); _save(cid, "MATCH_ASK", "engineer", d); return False
+    itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r)
+    if "No code list loaded" in (r["message"] or ""):
+        say(cid, "hod", f"New category: {text}. {r['message']}", [{"label": "Continue to RFQ, code pending", "data": "item:pending"}, {"label": "Hold", "data": "item:hold"}])
+        log(cid, "agent", "escalated", "No item-code list is loaded for this category; I did not invent a code. Asked the HOD.")
     else:
-        opts = [{"label": f"Use {x['code']}", "data": f"item:{x['code']}"} for x in m["candidates"][:2]] + [{"label": new_label, "data": "item:new"}]
-        msg = f"Item code needs your call for: {d['parsed'].get('item_description')}.\nBest candidates: " + "; ".join(f"{x['code']} ({x['score']})" for x in m["candidates"][:2]) + f". Possible duplicates: {dups}."
-    say(cid, "hod", msg, opts)
-    log(cid, "agent", "escalated", f"Match was {m['verdict']} (not confident), so I asked the HOD to choose the item code.")
+        opts = [{"label": f"Use {x['code']} ({x['confidence']})", "data": f"item:{x['code']}"} for x in r["candidates"][:3]]
+        sug = r["new_code_suggestion"]
+        if sug: opts.append({"label": f"Create {sug['code']} (draft)", "data": "item:new"})
+        opts.append({"label": "Ask the engineer", "data": "item:ask"})
+        why = {"needs_back_office_confirm": "Needs your confirmation", "conflict_in_erp": "The ERP itself is unclear", "suggest_new_code": "Nothing matches well", "needs_more_info": "More detail needed"}.get(st, st)
+        say(cid, "hod", f"{why} for: {text}.\n" + "\n".join(f"{i}. {x['code']} {x['description'][:50]} ({x['confidence']}: {x['why'][:60]})" for i, x in enumerate(r["candidates"][:3], 1)) + (f"\nDraft new code: {sug['code']} {sug['description']} ({sug['unit']})" if sug else "") + (f"\nFlags: {_flag_text(r)}" if r["flags"] else ""), opts)
+        log(cid, "agent", "escalated", f"Match status {st}: asked the HOD to choose (top 3 with reasons and flags shown).")
     _save(cid, "ITEM_REVIEW", "hod", d); return False
 
 
@@ -216,7 +240,7 @@ def h_in_work(c):
     log(cid, "agent", "asked", "Work period elapsed: started the post-job check-in with the site engineer."); _save(cid, "CHECKIN", "engineer", d); return False
 
 
-HANDLERS = {"IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
+HANDLERS = {"IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "MATCH_ASK": lambda c: False, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
 
 
 def advance(cid, max_steps=12):
@@ -234,7 +258,10 @@ def on_engineer_message(cid, text):
     with _lock(cid):
         c = _case(cid); d = c["data"]
         log(cid, "engineer", "received", text)
-        if c["state"] == "CLARIFY" and d.get("asked_open"):
+        if c["state"] == "MATCH_ASK" and d.get("asked_open"):
+            d["parsed"] = merge(d["parsed"], text); d["asked_open"] = False
+            log(cid, "agent", "parsed", "Updated the requirement from the reply; matching again.", d["parsed"]); _save(cid, "MATCH", None, d)
+        elif c["state"] == "CLARIFY" and d.get("asked_open"):
             d["parsed"] = merge(d["parsed"], text); d["clarify_rounds"] += 1; d["asked_open"] = False
             boq = find_boq(d["parsed"], d["raw"] + " " + text); d["has_boq"] = bool(boq)
             _save(c["id"], waiting=None, data=d); log(cid, "agent", "parsed", "Updated requirement from the reply.", d["parsed"])
@@ -246,8 +273,17 @@ def on_hod_action(cid, action: str):
         c = _case(cid); d = c["data"]; kind, _, val = action.partition(":")
         log(cid, "engineer" if kind == "checkin" else "hod", "action", f"{'Engineer' if kind == 'checkin' else 'HOD'} chose: {action}")
         if kind == "item" and c["state"] == "ITEM_REVIEW":
-            d["item_code"] = (d["match"].get("suggested_code", {}).get("code") if val == "new" else val)
-            log(cid, "agent", "decided_item", f"Item code set to {d['item_code']} by the HOD" + (" (new code, flagged ASSUMED numbering)" if val == "new" else "")); _save(cid, "RFQ", None, d)
+            m = d.get("match") or {}; text = (d.get("parsed") or {}).get("item_description") or d.get("raw", "")
+            if val == "hold":
+                log(cid, "agent", "note", "HOD put the item on hold."); _save(cid, "DECIDED", "nobody (on hold)", d); return
+            if val == "ask":
+                d["asked_open"] = True; say(cid, "engineer", "The back office needs a bit more detail on the item (material, area, floor or wall, side A or B). Please describe it again."); _save(cid, "MATCH_ASK", "engineer", d); return
+            if val == "boq": d["item_code"] = "BOQ package (site-sheet codes confirmed by HOD)"
+            elif val == "pending": d["item_code"] = "PENDING (back office to create)"
+            elif val == "new": d["item_code"] = (m.get("new_code_suggestion") or {}).get("code", "NEW"); itemmatch.remember(text, d["item_code"], who="HOD (new code, draft)")
+            else: d["item_code"] = val; itemmatch.remember(text, val, d.get("parsed", {}).get("project"), "HOD")
+            itemmatch.log_run(f"case-{cid}", "engineer", (d.get("parsed") or {}).get("project"), {"raw_text": text, "status": "human_choice", "candidates": m.get("candidates", []), "flags": m.get("flags", []), "erp_loaded": m.get("erp_loaded")}, "HOD", d["item_code"])
+            log(cid, "agent", "decided_item", f"Item code set to {d['item_code']} by the HOD; the choice is saved and will be used first next time the same wording comes in."); _save(cid, "RFQ", None, d)
         elif kind == "decision" and c["state"] == "AWAITING_HOD":
             cn = db.con(); cn.execute("insert into decisions(tender,decision,note,recommended) values(?,?,?,?)", (f"case-{cid}", val, "via chat", d.get("recommended"))); cn.commit(); cn.close()
             if val == "send back":
@@ -382,7 +418,7 @@ def engineer_inbound(text: str, channel="web", cid=None) -> int:
     """One entry point for every front door. A reply to an open question continues that case; anything else opens a new case."""
     if cid:
         c = _case(cid)
-        if c["state"] == "CLARIFY" and c["data"].get("asked_open"):
+        if c["state"] in ("CLARIFY", "MATCH_ASK") and c["data"].get("asked_open"):
             on_engineer_message(cid, text); return cid
     cid = new_case(text, channel); advance(cid); return cid
 

@@ -1,0 +1,50 @@
+[
+ {
+  "sl": 1,
+  "wo_code": "WPD.01",
+  "desc": "WATERPROOFING AT TOILET FLOOR",
+  "uom": "SQFT"
+ },
+ {
+  "sl": 2,
+  "wo_code": "WPD.02",
+  "desc": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+  "uom": "SQFT"
+ },
+ {
+  "sl": 3,
+  "wo_code": "WPD.03",
+  "desc": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+  "uom": "RMT"
+ },
+ {
+  "sl": 4,
+  "wo_code": "WPD.04",
+  "desc": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+  "uom": "SQFT"
+ },
+ {
+  "sl": 5,
+  "wo_code": "WPD.05",
+  "desc": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+  "uom": "SQFT"
+ },
+ {
+  "sl": 6,
+  "wo_code": "WPD.06",
+  "desc": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+  "uom": "SQFT"
+ },
+ {
+  "sl": 7,
+  "wo_code": "WPD.07",
+  "desc": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+  "uom": "SQFT"
+ },
+ {
+  "sl": 8,
+  "wo_code": "WPD.08",
+  "desc": "NOZZLE GROUTING (IF REQUIRED)",
+  "uom": "NOS"
+ }
+]

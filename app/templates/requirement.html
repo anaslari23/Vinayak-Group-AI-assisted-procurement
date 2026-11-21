@@ -13,13 +13,17 @@
 <tr><th>Quantity</th><td>{{p.quantity or '-'}} {{p.uom or ''}}</td><th>Needed by</th><td>{{p.needed_by or '-'}}</td></tr></table>
 {% if p.missing %}<p class="warn">The HOD would need to ask back: {{p.missing|join(', ')}}</p>{% endif %}</div>
 <div class="card"><b>Item code result:</b>
-{% if m.verdict=='match' %}<span class="pill ok">existing code found</span>{% elif m.verdict=='borderline' %}<span class="pill warn">borderline, needs a human look</span>{% else %}<span class="pill bad">no good match, new code suggested</span>{% endif %}
-{% if m.suggested_code %}<p>Suggested new code: <b>{{m.suggested_code.code}}</b> <span class="mut">({{m.suggested_code.note}})</span></p>{% endif %}
-<table><tr><th>ERP code</th><th>Description</th><th>Score</th><th>Notes</th></tr>
-{% for c in m.candidates %}<tr class="{{'best' if loop.first and m.verdict=='match'}}"><td><b>{{c.code}}</b></td><td>{{c.descr[:110]}}</td><td class="n">{{c.score}}</td>
-<td>{% if c.attr_match %}surface and element match{% endif %}{% if c.code_repeats>1 %} <span class="warn">code listed {{c.code_repeats}}× in the master</span>{% endif %}</td></tr>{% endfor %}</table>
-{% if m.duplicates_of_best %}<p class="warn">Near-duplicates and A/B variants of the best match (HOD to consolidate): {% for d in m.duplicates_of_best %}{{d.code}}{{', ' if not loop.last}}{% endfor %}.</p>{% endif %}
-<p class="mut">Codes come from the item master loaded for this deployment (synthetic in the public demo). New-code numbering is ASSUMED, not a documented Farvision rule.</p></div>
+{% if m.status=='matched_high' %}<span class="pill ok">matched with high confidence (agent proceeds, logged)</span>{% elif m.status=='needs_back_office_confirm' %}<span class="pill warn">needs back-office confirmation</span>{% elif m.status=='conflict_in_erp' %}<span class="pill bad">conflict in the ERP, back office to decide</span>{% elif m.status=='suggest_new_code' %}<span class="pill bad">no good match, new code drafted</span>{% elif m.status=='needs_more_info' %}<span class="pill warn">needs more information</span>{% else %}<span class="pill">no match</span>{% endif %}
+<span class="mut" style="font-size:12px"> ERP list loaded {{m.erp_loaded}}</span>
+{% if m.message %}<p>{{m.message}}</p>{% endif %}
+{% if m.questions_for_requester %}<p class="warn"><b>Question back to the requester:</b> {{m.questions_for_requester|join(' ')}}</p>{% endif %}
+{% if m.candidates %}<table><tr><th>ERP code</th><th>Description</th><th>Confidence</th><th>Why</th><th></th></tr>
+{% for c in m.candidates %}<tr class="{{'best' if loop.first and m.status in ['matched_high','needs_back_office_confirm']}}"><td><b>{{c.code}}</b></td><td>{{c.description[:90]}}</td><td class="n">{{c.confidence}} <span class="mut">{{c.level}}</span></td><td style="font-size:13px">{{c.why}}</td>
+<td><form method="post" action="/requirement/accept" style="margin:0"><input type="hidden" name="text" value="{{result.raw}}"><input type="hidden" name="code" value="{{c.code}}"><button class="sec" style="padding:3px 10px">Accept</button></form></td></tr>{% endfor %}</table>{% endif %}
+{% if m.duplicate_warning %}<p class="warn">Duplicate warning: {{m.duplicate_warning.note}} ({{m.duplicate_warning.group|join(', ')}})</p>{% endif %}
+{% if m.flags %}<ul class="r">{% for f in m.flags %}<li><b>{{f.flag}}</b>: {{f.message}}</li>{% endfor %}</ul>{% endif %}
+{% if m.new_code_suggestion %}{% set n=m.new_code_suggestion %}<div class="banner"><b>Draft new code (needs back-office approval, never created automatically):</b> {{n.code}} · {{n.description}} · {{n.unit}}. Numbers already taken: {{n.taken_numbers|join(', ')}}.<br>Nearest existing codes and why rejected: {% for x in n.nearest %}{{x.code}} ({{x.why_rejected}}){{'; ' if not loop.last}}{% endfor %}</div>{% endif %}
+<p class="mut">Accepting saves the pair (wording to code); the same wording is matched to it first next time. Codes are never created or edited in the ERP by this tool. New-code numbering follows the list's own pattern and is a draft.</p></div>
 {% endif %}
 {% if recent %}<h2>Recent</h2>{% for r in recent %}<div class="card mut">{{r.raw[:140]}} → {{r.match.verdict}} {{r.match.candidates[0].code if r.match.candidates}}</div>{% endfor %}{% endif %}
 {% endblock %}

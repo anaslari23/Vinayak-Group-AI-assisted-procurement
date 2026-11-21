@@ -1,5 +1,181 @@
 [
  {
+  "code": "WPD.UGR.A",
+  "desc": "UGR OUTSIDE WALL AREA-METHODOLOGY-1"
+ },
+ {
+  "code": "WPD.UGR.B",
+  "desc": "UGR OUTSIDE WALL AREA-METHODOLOGY-2"
+ },
+ {
+  "code": "WPD.UGR.C",
+  "desc": "UGR INSIDE FLOOR & WALL AREA"
+ },
+ {
+  "code": "WPD.STP.A",
+  "desc": "STP OUTSIDE WALL AREA"
+ },
+ {
+  "code": "WPD.STP.B",
+  "desc": "STP INSIDE WALL & FLOOR AREA"
+ },
+ {
+  "code": "STPD_UGR",
+  "desc": "Nozzle grouting at all construction joints"
+ },
+ {
+  "code": "STPD_UGR_01",
+  "desc": "Neat Cement Punning Work"
+ },
+ {
+  "code": "W.PD",
+  "desc": "WATER PROOFING WORK (UGR, STP & LIFT PIT)"
+ },
+ {
+  "code": "W.PD.01",
+  "desc": "Water Proofing LIFT PIT/UGR/STP/WALL"
+ },
+ {
+  "code": "W.PD.02",
+  "desc": "Waterproofing work in Lift Pit/UGR/STP floor"
+ },
+ {
+  "code": "W.PD.03",
+  "desc": "Grouting at all construction joints"
+ },
+ {
+  "code": "W.PD.04",
+  "desc": "Neat Cement Punning Work"
+ },
+ {
+  "code": "W.PD.05",
+  "desc": "Screed Concrete Work"
+ },
+ {
+  "code": "W.PD-.1",
+  "desc": "REPAIRING WORK FOR WATERPROOFING"
+ },
+ {
+  "code": "WPD.01.A",
+  "desc": "WATERPROOFING AT TOILET FLOOR-A"
+ },
+ {
+  "code": "WPD.02.A",
+  "desc": "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)-A"
+ },
+ {
+  "code": "WPD.04.A",
+  "desc": "WATERPROOFING AT KITCHEN FLOOR-A"
+ },
+ {
+  "code": "WPD.05.A",
+  "desc": "WATERPROOFING AT KITCHEN WALL-A"
+ },
+ {
+  "code": "WPD.06.A",
+  "desc": "WATERPROOFING AT BALCONY FLOOR-A"
+ },
+ {
+  "code": "WPD.07.A",
+  "desc": "WATERPROOFING WORKS {BALCONY WALL (UPTO 200 MM HIGHT)} Providing and applying integral multi-layer waterproofing treatment on vertical and horizontal surfaces of depressed portions of W.C., bathrooms, kitchens, balconies, stilts, etc., including surface preparation, cleaning, sealing of all junctions, joints, corners and pipe penetrations, consisting of: (a) first course of cement slurry mixed with an approved integral waterproofing compound, (b) second course of cement plaster mixed with waterproofing compound, including rounding off the junction, (c) third course of polymer modified slurry, (d) fourth course of protective cement plaster, including curing, scaffolding, labour, tools and tackles, making good adjoining surfaces and ensuring watertightness, as directed by the Engineer-in-Charge."
+ },
+ {
+  "code": "WPD.08.A",
+  "desc": "WATERPROOFING AT OT FLOOR & WALL"
+ },
+ {
+  "code": "WPD.01.B",
+  "desc": "WATERPROOFING AT TOILET FLOOR-B"
+ },
+ {
+  "code": "WPD.02.B",
+  "desc": "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)-B"
+ },
+ {
+  "code": "WPD.04.B",
+  "desc": "WATERPROOFING AT KITCHEN FLOOR-B"
+ },
+ {
+  "code": "WPD.05.B",
+  "desc": "WATERPROOFING AT KITCHEN WALL-B"
+ },
+ {
+  "code": "WPD.06.B",
+  "desc": "WATERPROOFING AT BALCONY FLOOR-B"
+ },
+ {
+  "code": "WPD.07.B",
+  "desc": "WATERPROOFING WORKS {BALCONY WALL (UPTO 200 MM HIGHT)}"
+ },
+ {
+  "code": "WPD.08.B",
+  "desc": "WATERPROOFING AT OT FLOOR & WALL"
+ },
+ {
+  "code": "WPD.09.B",
+  "desc": "WATERPROOFING AT ROOF & MUMPTY TOP FLOOR & WALL"
+ },
+ {
+  "code": "WPD.COBA",
+  "desc": "WATERPROOFING WITH BRICK BAT COBA"
+ },
+ {
+  "code": "WPD.10.B",
+  "desc": "OWHT TANK FLOOR & WALL WATERPROOFING"
+ },
+ {
+  "code": "WPD.11.B",
+  "desc": "*NOZZLE GROUTING (IF REQUIRED)"
+ },
+ {
+  "code": "WPD.11.B_",
+  "desc": "NOZZLE GROUTING (*IF REQUIRED)"
+ },
+ {
+  "code": "WPD.EXP.01",
+  "desc": "Expansion Joint Polysulphide Treatment"
+ },
+ {
+  "code": "W.PD.08",
+  "desc": "75 MM SCREED CONCRETE WORK ABOVE ROOF"
+ },
+ {
+  "code": "WPD.RC",
+  "desc": "CONCRETE PUMPING WORK (SCREED CONCRETE)"
+ },
+ {
+  "code": "WPD.RC.1",
+  "desc": "CONCRETE PUMP CHARGES-B"
+ },
+ {
+  "code": "WPD.11.B",
+  "desc": "*NOZZLE GROUTING (IF REQUIRED)"
+ },
+ {
+  "code": "W.PD.11B",
+  "desc": "Epoxy Tar Based Coating for S.T.P"
+ },
+ {
+  "code": "W.PD.01",
+  "desc": "Water Proofing LIFT PIT/UGR/STP/WALL"
+ },
+ {
+  "code": "W.PD.02",
+  "desc": "Waterproofing work in Lift Pit/UGR/STP floor"
+ },
+ {
+  "code": "W.PD.03",
+  "desc": "Grouting at all construction joints"
+ },
+ {
+  "code": "W.PD.04",
+  "desc": "Neat Cement Punning Work"
+ },
+ {
+  "code": "W.PD.05",
+  "desc": "Screed Concrete Work"
+ },
+ {
   "code": "WPD.01",
   "desc": "WATERPROOFING AT TOILET FLOOR"
  },
@@ -9,7 +185,7 @@
  },
  {
   "code": "WPD.03",
-  "desc": "WATERPROOFING COMPOUND ON TOILET DEPRESSION CHANNEL"
+  "desc": "SUPPLY & APPLICATION OF WATERPROOFING COMPOUND ON TOILET DEPRESSION CHANNEL"
  },
  {
   "code": "WPD.04",
@@ -40,123 +216,51 @@
   "desc": "WATERPROOFING AT TOILET FLOOR-A"
  },
  {
-  "code": "WPD.02.A",
-  "desc": "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)-A"
- },
- {
-  "code": "WPD.03.A",
-  "desc": "WATERPROOFING COMPOUND ON TOILET DEPRESSION CHANNEL-A"
- },
- {
-  "code": "WPD.04.A",
-  "desc": "WATERPROOFING AT KITCHEN FLOOR-A"
- },
- {
-  "code": "WPD.05.A",
-  "desc": "WATERPROOFING AT KITCHEN WALL-A"
- },
- {
-  "code": "WPD.06.A",
-  "desc": "WATERPROOFING AT BALCONY FLOOR-A"
- },
- {
-  "code": "WPD.07.A",
-  "desc": "WATERPROOFING AT BALCONY WALL (UPTO 200 MM HIGHT)-A"
- },
- {
-  "code": "WPD.01.B",
-  "desc": "WATERPROOFING AT TOILET FLOOR-B"
- },
- {
-  "code": "WPD.02.B",
-  "desc": "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)-B"
- },
- {
-  "code": "WPD.03.B",
-  "desc": "WATERPROOFING COMPOUND ON TOILET DEPRESSION CHANNEL-B"
- },
- {
   "code": "WPD.04.B",
-  "desc": "WATERPROOFING AT KITCHEN FLOOR-B"
- },
- {
-  "code": "WPD.05.B",
   "desc": "WATERPROOFING AT KITCHEN WALL-B"
  },
  {
-  "code": "WPD.06.B",
+  "code": "WPD.05.B",
   "desc": "WATERPROOFING AT BALCONY FLOOR-B"
  },
  {
+  "code": "WPD.06.B",
+  "desc": "WATERPROOFINWORKS {BALCONY WALL (UPTO 200 MM HIGHT)}"
+ },
+ {
   "code": "WPD.07.B",
-  "desc": "WATERPROOFING AT BALCONY WALL (UPTO 200 MM HIGHT)-B"
- },
- {
-  "code": "WPD.UGR.A",
-  "desc": "UGR OUTSIDE WALL AREA-METHODOLOGY-1"
- },
- {
-  "code": "WPD.UGR.B",
-  "desc": "UGR OUTSIDE WALL AREA-METHODOLOGY-2"
- },
- {
-  "code": "WPD.UGR.C",
-  "desc": "UGR INSIDE FLOOR & WALL AREA"
- },
- {
-  "code": "WPD.STP.A",
-  "desc": "STP OUTSIDE WALL AREA"
- },
- {
-  "code": "WPD.STP.B",
-  "desc": "STP INSIDE WALL & FLOOR AREA"
+  "desc": "WATERPROOFING AT OT FLOOR & WALL"
  },
  {
   "code": "WPD.EXP.01",
-  "desc": "EXPANSION JOINT POLYSULPHIDE TREATMENT"
+  "desc": "Hypalon Expansion Joint Treatment"
  },
  {
-  "code": "WPD.EXP.01",
-  "desc": "EXPANSION JOINT POLYSULPHIDE TREATMENT"
+  "code": "WPD.RC1",
+  "desc": "CONCRETE PUMPING WORK (SCREED CONCRETE)-1"
  },
  {
   "code": "WPD.GR.01",
-  "desc": "NOZZLE GROUTING AT ALL CONSTRUCTION JOINTS"
+  "desc": "EXPENSION JOINT ALUMINIUM SHEET FIXING"
  },
  {
   "code": "WPD.GR.02",
-  "desc": "NOZZLE GROUTING AT ALL CONSTRUCTION JOINTS"
+  "desc": "EXTRA FOR 300 MM COMBIFLEX TAPE SUPPLY & FIXING"
  },
  {
-  "code": "WPD.GR.02",
-  "desc": "*NOZZLE GROUTING (IF REQUIRED)"
+  "code": "WPD.GR.03",
+  "desc": "PROVIDING & APPLYING SEALENT AT EXPENSION JOINT TILES GAP"
  },
  {
-  "code": "WPD.PN.01",
-  "desc": "NEAT CEMENT PUNNING WORK"
+  "code": "WPD.MR",
+  "desc": "Scaffolding charges"
  },
  {
-  "code": "WPD.PN.01",
-  "desc": "NEAT CEMENT PUNNING WORK"
- },
- {
-  "code": "WPD.RF.01",
-  "desc": "WATERPROOFING AT ROOF & MUMPTY TOP FLOOR & WALL"
- },
- {
-  "code": "WPD.OT.01",
-  "desc": "OWHT TANK FLOOR & WALL WATERPROOFING"
- },
- {
-  "code": "WPD.SC.01",
+  "code": "WPD.12.C",
   "desc": "75 MM SCREED CONCRETE WORK ABOVE ROOF"
  },
  {
-  "code": "WPD.RP.01",
-  "desc": "REPAIRING WORK FOR WATERPROOFING"
- },
- {
-  "code": "WPD.COBA",
-  "desc": "WATERPROOFING WITH BRICK BAT COBA"
+  "code": "WPD.11.B",
+  "desc": "*NOZZLE GROUTING (IF REQUIRED)"
  }
 ]

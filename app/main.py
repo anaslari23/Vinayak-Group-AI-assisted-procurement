@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import openpyxl
-from . import db, items, rfq, mailer, recommend
+from . import db, itemmatch, rfq, mailer, recommend
 from .scoring import rank, reasons, W
 from .normalise import ASSUMP
 from .tender import TENDER
@@ -85,7 +85,8 @@ async def req_submit(request: Request, text: str = Form(""), audio: UploadFile |
         err = "Type or paste a requirement, or upload a voice note."
     if text.strip():
         parsed = parse(text)
-        m = items.match(parsed.get("item_description") or text)
+        m = itemmatch.match(parsed.get("item_description") or text, unit=parsed.get("uom"), quantity=parsed.get("quantity"), project=parsed.get("project"))
+        itemmatch.log_run("form", "web user", parsed.get("project"), m)
         c = db.con(); c.execute("insert into requirements(raw,channel,parsed,match) values(?,?,?,?)", (text, channel, json.dumps(parsed), json.dumps(m))); c.commit(); c.close()
         result = {"raw": text, "channel": channel, "parsed": parsed, "match": m}
     return page(request, "requirement.html", "1", recent=[], result=result, err=err)
@@ -230,12 +231,13 @@ def mail(request: Request):
 def eval_page(request: Request):
     from .evalq import run
     qs = [json.loads(f.read_text()) for d in ("cache", "eval_cache") for f in sorted((DATA_DIR / d).glob("*.json"))]
-    return page(request, "eval.html", "", res=run(qs), synthetic=TENDER.get("synthetic"))
+    ie = DATA_DIR / "item_eval.json"
+    return page(request, "eval.html", "", res=run(qs), synthetic=TENDER.get("synthetic"), ie=json.loads(ie.read_text()) if ie.exists() else None)
 
 
 # ---- the agent: cases
 from . import engine
-STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "ITEM_REVIEW": "waiting for HOD (item code)", "RFQ": "sending RFQs",
+STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "MATCH_ASK": "asking the engineer about the item", "ITEM_REVIEW": "waiting for HOD (item code)", "RFQ": "sending RFQs",
                "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for HOD decision", "IN_WORK": "work in progress", "CHECKIN": "post-job check-in", "DECIDED": "closed"}
 T.env.globals["STATE_LABEL"] = STATE_LABEL
 
@@ -405,3 +407,32 @@ def vendor_job(key: str, quality: int = Form(...), delay_days: int = Form(0), di
     from datetime import date
     db.add_job(key, 0, max(1, min(5, quality)), 1 if delay_days <= 3 else 0, delay_days, 1 if dispute else 0, note or "manual entry", "manual entry by HOD", date.today().isoformat())
     return RedirectResponse(f"/vendors/{key}", 303)
+
+
+# ---- Step 2 back office tools
+@app.post("/requirement/accept")
+def req_accept(text: str = Form(...), code: str = Form(...)):
+    itemmatch.remember(text, code, who="back office (web)"); itemmatch.log_run("form", "web user", None, {"raw_text": text, "status": "human_choice", "candidates": [], "flags": [], "erp_loaded": itemmatch.erp().loaded}, "back office (web)", code)
+    return RedirectResponse("/requirement", 303)
+
+
+@app.get("/erp-cleanup", response_class=HTMLResponse)
+def erp_cleanup(request: Request):
+    rep = itemmatch.cleanup_report(itemmatch.flag_hits())
+    c = db.con(); syn = [dict(r) for r in c.execute("select * from synonyms order by word")]; ch = [dict(r) for r in c.execute("select * from item_choices order by id desc limit 15")]
+    log = [dict(r) for r in c.execute("select * from item_log order by id desc limit 15")]; c.close()
+    return page(request, "cleanup.html", "", rep=rep, syn=syn, ch=ch, log=log, loaded=itemmatch.erp().loaded, rows=len(itemmatch.erp().rows))
+
+
+@app.get("/erp-cleanup.csv")
+def erp_cleanup_csv():
+    import csv
+    buf = io.StringIO(); w = csv.writer(buf); w.writerow(["flag", "codes", "detail", "times_hit"])
+    for r in itemmatch.cleanup_report(itemmatch.flag_hits()): w.writerow([r["flag"], " | ".join(r["codes"]), r["detail"], r["hits"]])
+    return StreamingResponse(io.BytesIO(buf.getvalue().encode()), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=erp_cleanup.csv"})
+
+
+@app.post("/synonyms")
+def synonyms_add(word: str = Form(...), maps_to: str = Form(...)):
+    c = db.con(); c.execute("insert or replace into synonyms values(?,?)", (word.strip().lower(), maps_to.strip().lower())); c.commit(); c.close()
+    return RedirectResponse("/erp-cleanup", 303)

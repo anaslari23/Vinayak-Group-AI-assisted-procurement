@@ -22,20 +22,53 @@ TENDER = {"id": "DEMO-TB-WP", "project": "Demo Heights", "package": "Waterproofi
                              "Safety PPE is the contractor's cost."]}
 (ROOT / "tender.json").write_text(json.dumps(TENDER, indent=1))
 
-# ---------- synthetic ERP item master (deliberately messy: variants, repeats, near-duplicates)
-base = [("WPD.01", "WATERPROOFING AT TOILET FLOOR"), ("WPD.02", "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)"), ("WPD.03", "WATERPROOFING COMPOUND ON TOILET DEPRESSION CHANNEL"),
-        ("WPD.04", "WATERPROOFING AT KITCHEN FLOOR"), ("WPD.05", "WATERPROOFING AT KITCHEN WALL"), ("WPD.06", "WATERPROOFING AT BALCONY FLOOR"),
-        ("WPD.07", "WATERPROOFING AT BALCONY WALL (UPTO 200 MM HIGHT)"), ("WPD.08", "PRESSURE GROUTING INSIDE R.C.C FLOOR & WALL"), ("WPD.09", "SCREED CONCRETE IN FLOOR (TOILET & BALCONY)")]
-items = [{"code": c, "desc": d} for c, d in base]
-for sfx in "AB":
-    items += [{"code": f"{c}.{sfx}", "desc": f"{d}-{sfx}"} for c, d in base[:7]]
-items += [{"code": "WPD.UGR.A", "desc": "UGR OUTSIDE WALL AREA-METHODOLOGY-1"}, {"code": "WPD.UGR.B", "desc": "UGR OUTSIDE WALL AREA-METHODOLOGY-2"}, {"code": "WPD.UGR.C", "desc": "UGR INSIDE FLOOR & WALL AREA"},
-          {"code": "WPD.STP.A", "desc": "STP OUTSIDE WALL AREA"}, {"code": "WPD.STP.B", "desc": "STP INSIDE WALL & FLOOR AREA"}, {"code": "WPD.EXP.01", "desc": "EXPANSION JOINT POLYSULPHIDE TREATMENT"},
-          {"code": "WPD.EXP.01", "desc": "EXPANSION JOINT POLYSULPHIDE TREATMENT"}, {"code": "WPD.GR.01", "desc": "NOZZLE GROUTING AT ALL CONSTRUCTION JOINTS"}, {"code": "WPD.GR.02", "desc": "NOZZLE GROUTING AT ALL CONSTRUCTION JOINTS"},
-          {"code": "WPD.GR.02", "desc": "*NOZZLE GROUTING (IF REQUIRED)"}, {"code": "WPD.PN.01", "desc": "NEAT CEMENT PUNNING WORK"}, {"code": "WPD.PN.01", "desc": "NEAT CEMENT PUNNING WORK"},
-          {"code": "WPD.RF.01", "desc": "WATERPROOFING AT ROOF & MUMPTY TOP FLOOR & WALL"}, {"code": "WPD.OT.01", "desc": "OWHT TANK FLOOR & WALL WATERPROOFING"}, {"code": "WPD.SC.01", "desc": "75 MM SCREED CONCRETE WORK ABOVE ROOF"},
-          {"code": "WPD.RP.01", "desc": "REPAIRING WORK FOR WATERPROOFING"}, {"code": "WPD.COBA", "desc": "WATERPROOFING WITH BRICK BAT COBA"}]
+# ---------- synthetic ERP item master: invented wording, but it carries the same KINDS of mess a real ERP export has
+# (exact repeats, one code with two meanings, one work under many codes, look-alike codes, typos, a very long description, a
+# code whose meaning differs from the site sheet). 'WPD' is the demo prefix.
+LONG = ("WATERPROOFING WORKS {BALCONY WALL (UPTO 200 MM HIGHT)} Providing and applying integral multi-layer waterproofing treatment on vertical and "
+        "horizontal surfaces of depressed portions of W.C., bathrooms, kitchens, balconies, stilts, etc., including surface preparation, cleaning, "
+        "sealing of all junctions, joints, corners and pipe penetrations, consisting of: (a) first course of cement slurry mixed with an approved integral "
+        "waterproofing compound, (b) second course of cement plaster mixed with waterproofing compound, including rounding off the junction, "
+        "(c) third course of polymer modified slurry, (d) fourth course of protective cement plaster, including curing, scaffolding, labour, tools and "
+        "tackles, making good adjoining surfaces and ensuring watertightness, as directed by the Engineer-in-Charge.") * 1
+rows = [
+ ("WPD.UGR.A", "UGR OUTSIDE WALL AREA-METHODOLOGY-1"), ("WPD.UGR.B", "UGR OUTSIDE WALL AREA-METHODOLOGY-2"), ("WPD.UGR.C", "UGR INSIDE FLOOR & WALL AREA"),
+ ("WPD.STP.A", "STP OUTSIDE WALL AREA"), ("WPD.STP.B", "STP INSIDE WALL & FLOOR AREA"), ("STPD_UGR", "Nozzle grouting at all construction joints"),
+ ("STPD_UGR_01", "Neat Cement Punning Work"), ("W.PD", "WATER PROOFING WORK (UGR, STP & LIFT PIT)"), ("W.PD.01", "Water Proofing LIFT PIT/UGR/STP/WALL"),
+ ("W.PD.02", "Waterproofing work in Lift Pit/UGR/STP floor"), ("W.PD.03", "Grouting at all construction joints"), ("W.PD.04", "Neat Cement Punning Work"),
+ ("W.PD.05", "Screed Concrete Work"), ("W.PD-.1", "REPAIRING WORK FOR WATERPROOFING"),
+ ("WPD.01.A", "WATERPROOFING AT TOILET FLOOR-A"), ("WPD.02.A", "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)-A"), ("WPD.04.A", "WATERPROOFING AT KITCHEN FLOOR-A"),
+ ("WPD.05.A", "WATERPROOFING AT KITCHEN WALL-A"), ("WPD.06.A", "WATERPROOFING AT BALCONY FLOOR-A"), ("WPD.07.A", LONG), ("WPD.08.A", "WATERPROOFING AT OT FLOOR & WALL"),
+ ("WPD.01.B", "WATERPROOFING AT TOILET FLOOR-B"), ("WPD.02.B", "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)-B"), ("WPD.04.B", "WATERPROOFING AT KITCHEN FLOOR-B"),
+ ("WPD.05.B", "WATERPROOFING AT KITCHEN WALL-B"), ("WPD.06.B", "WATERPROOFING AT BALCONY FLOOR-B"), ("WPD.07.B", "WATERPROOFING WORKS {BALCONY WALL (UPTO 200 MM HIGHT)}"),
+ ("WPD.08.B", "WATERPROOFING AT OT FLOOR & WALL"), ("WPD.09.B", "WATERPROOFING AT ROOF & MUMPTY TOP FLOOR & WALL"), ("WPD.COBA", "WATERPROOFING WITH BRICK BAT COBA"),
+ ("WPD.10.B", "OWHT TANK FLOOR & WALL WATERPROOFING"), ("WPD.11.B", "*NOZZLE GROUTING (IF REQUIRED)"), ("WPD.11.B_", "NOZZLE GROUTING (*IF REQUIRED)"),
+ ("WPD.EXP.01", "Expansion Joint Polysulphide Treatment"), ("W.PD.08", "75 MM SCREED CONCRETE WORK ABOVE ROOF"), ("WPD.RC", "CONCRETE PUMPING WORK (SCREED CONCRETE)"),
+ ("WPD.RC.1", "CONCRETE PUMP CHARGES-B"), ("WPD.11.B", "*NOZZLE GROUTING (IF REQUIRED)"), ("W.PD.11B", "Epoxy Tar Based Coating for S.T.P"),
+ ("W.PD.01", "Water Proofing LIFT PIT/UGR/STP/WALL"), ("W.PD.02", "Waterproofing work in Lift Pit/UGR/STP floor"), ("W.PD.03", "Grouting at all construction joints"),
+ ("W.PD.04", "Neat Cement Punning Work"), ("W.PD.05", "Screed Concrete Work"),
+ ("WPD.01", "WATERPROOFING AT TOILET FLOOR"), ("WPD.02", "WATERPROOFING AT TOILET WALL (UPTO 450 MM HIGHT)"),
+ ("WPD.03", "SUPPLY & APPLICATION OF WATERPROOFING COMPOUND ON TOILET DEPRESSION CHANNEL"), ("WPD.04", "WATERPROOFING AT KITCHEN FLOOR"), ("WPD.05", "WATERPROOFING AT KITCHEN WALL"),
+ ("WPD.06", "WATERPROOFING AT BALCONY FLOOR"), ("WPD.07", "WATERPROOFING AT BALCONY WALL (UPTO 200 MM HIGHT)"), ("WPD.08", "PRESSURE GROUTING INSIDE R.C.C FLOOR & WALL"),
+ ("WPD.09", "SCREED CONCRETE IN FLOOR (TOILET & BALCONY)"),
+ ("WPD.01.A", "WATERPROOFING AT TOILET FLOOR-A"), ("WPD.04.B", "WATERPROOFING AT KITCHEN WALL-B"), ("WPD.05.B", "WATERPROOFING AT BALCONY FLOOR-B"),
+ ("WPD.06.B", "WATERPROOFINWORKS {BALCONY WALL (UPTO 200 MM HIGHT)}"), ("WPD.07.B", "WATERPROOFING AT OT FLOOR & WALL"),
+ ("WPD.EXP.01", "Hypalon Expansion Joint Treatment"), ("WPD.RC1", "CONCRETE PUMPING WORK (SCREED CONCRETE)-1"), ("WPD.GR.01", "EXPENSION JOINT ALUMINIUM SHEET FIXING"),
+ ("WPD.GR.02", "EXTRA FOR 300 MM COMBIFLEX TAPE SUPPLY & FIXING"), ("WPD.GR.03", "PROVIDING & APPLYING SEALENT AT EXPENSION JOINT TILES GAP"), ("WPD.MR", "Scaffolding charges"),
+ ("WPD.12.C", "75 MM SCREED CONCRETE WORK ABOVE ROOF"), ("WPD.11.B", "*NOZZLE GROUTING (IF REQUIRED)")]
+items = [{"code": c, "desc": d} for c, d in rows]
 (ROOT / "items.json").write_text(json.dumps(items, indent=1))
+# site sheet (what the engineers' BOQ calls things). Note WPD.08 = nozzle grouting on the site sheet but pressure grouting in the ERP.
+site = [{"sl": l[0], "wo_code": l[4], "desc": l[1].upper(), "uom": l[2]} for l in LINES] + [{"sl": 8, "wo_code": "WPD.08", "desc": "NOZZLE GROUTING (IF REQUIRED)", "uom": "NOS"}]
+(ROOT / "site_boq.json").write_text(json.dumps(site, indent=1))
+(ROOT / "item_meta.json").write_text(json.dumps({"prefix": "WPD", "aliases": {
+  "toilet_floor": ["WPD.01"], "toilet_floor_family": ["WPD.01", "WPD.01.A", "WPD.01.B"], "toilet_wall_family": ["WPD.02", "WPD.02.A", "WPD.02.B"],
+  "balcony_wall_family": ["WPD.07", "WPD.07.A", "WPD.07.B"], "nozzle": ["WPD.11.B", "WPD.11.B_"], "kitchen_floor_B": ["WPD.04.B", "WPD.03.B"],
+  "punning": ["STPD_UGR_01", "W.PD.04"], "expansion": ["WPD.EXP.01"], "pump": ["WPD.RC", "WPD.RC1", "WPD.RC.1"], "roof": ["WPD.09.B"],
+  "kitchen_floor_family": ["WPD.04", "WPD.04.A", "WPD.04.B"], "kitchen_wall_family": ["WPD.05", "WPD.05.A", "WPD.05.B"], "balcony_floor_family": ["WPD.06", "WPD.06.A", "WPD.06.B"],
+  "ot_family": ["WPD.08.A", "WPD.08.B", "WPD.07.B"], "pressure_grout": ["WPD.08"], "screed_roof": ["W.PD.08", "WPD.12.C"], "depression": ["WPD.03"]}}, indent=1))
+(ROOT / "synonyms.json").write_text(json.dumps({"bathroom": "toilet", "bath": "toilet", "washroom": "toilet", "wc": "toilet", "chhat": "roof", "chat": "roof", "terrace": "roof",
+  "sink": "kitchen", "rooftop": "roof", "tank": "tank", "balkoni": "balcony", "pani": "water"}, indent=1))
 
 # ---------- synthetic vendors
 HEAD = ["Kalyani Seal & Shield Pvt. Ltd.", "Rupashi Waterproofing Works", "Ganga Damp-Proof Contractors", "Teesta Prevention & Cure Co."]
