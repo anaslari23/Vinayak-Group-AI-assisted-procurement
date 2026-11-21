@@ -79,3 +79,10 @@ def test_an_older_database_gets_the_new_columns(tmp_path, monkeypatch):
     f = tmp_path / "old.db"; c = sqlite3.connect(f); c.execute("create table wa_out(id integer primary key autoincrement, jid text, text text, mentions text, ogg_b64 text, sent integer default 0, ts text)"); c.commit(); c.close()
     monkeypatch.setattr(db, "DB_PATH", str(f)); db.init()
     cols = {r[1] for r in sqlite3.connect(f).execute("pragma table_info(wa_out)")}; assert "claimed_at" in cols
+
+
+def test_a_news_forward_or_greeting_addressed_to_the_agent_gets_a_polite_reply_not_a_case(monkeypatch):
+    monkeypatch.setattr(wa, "ask_json", lambda *a, **k: {"is_requirement": False, "summary": ""})
+    r = wa.inbound({**msg(40, "JUST IN: Indian stock markets surged to nine-month highs today"), "is_group": False})        # a direct message counts as addressed
+    assert r["handled"] == "not a requirement" and not rows("select * from cases")
+    assert any("I handle procurement" in o["text"] for o in wa.outbox())

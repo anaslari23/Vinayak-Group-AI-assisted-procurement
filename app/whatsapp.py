@@ -117,6 +117,10 @@ def _route(p, jid, sender, name, body, addressed, kind, lang):
             if opt: engine.bg(engine.on_hod_action, own["case_id"], opt["data"]); return "check-in answer"
         engine.bg(_continue, own["case_id"], body); return "reply to the agent"
     if addressed:
+        if stock.ASK.search(body) and not stock.BUY.search(body) and stock.find_material(body):
+            return _raise(jid, sender, name, body, kind, lang, ack=False)                # a stock question: the engine answers it from the workbook
+        if _model_check(body) is None:                                                   # addressed, but not a requirement (news, chatter, a greeting)
+            _queue(jid, "I handle procurement: tell me what material or work is needed (text or voice, any language) or ask about stock, e.g. 'how much cement is left at Demo Heights?'.", [sender]); return "not a requirement"
         return _raise(jid, sender, name, body, kind, lang, ack=False)
     # 4. not addressed: the agent decides for itself whether this is a requirement
     summ = requirement_like(body)

@@ -12,6 +12,8 @@ const APP = process.env.APP_URL || env.APP_URL || 'http://127.0.0.1:8000'
 const KEY = process.env.WA_BRIDGE_KEY || env.WA_BRIDGE_KEY || ''
 const H = { 'content-type': 'application/json', 'x-bridge-key': KEY }
 const log = pino({ level: 'silent' })
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const postRetry = async (path, body, tries = 10) => { for (let i = 0; i < tries; i++) { const r = await post(path, body); if (!r.error) return r; await sleep(2000) } return { error: 'gave up' } }   // never lose a message if the app is restarting
 const post = (path, body) => fetch(APP + path, { method: 'POST', headers: H, body: JSON.stringify(body) }).then(r => r.json()).catch(e => ({ error: String(e) }))
 const names = new Map()
 
@@ -56,7 +58,7 @@ async function start() {
           sender_name: m.pushName || '', text, mentioned: ctx.mentionedJid || [], quoted_participant: ctx.participant || '', my_ids: [sock.user?.id, sock.user?.lid].filter(Boolean), ts: Number(m.messageTimestamp) || 0 }
         if (msg.audioMessage) { const buf = await downloadMediaMessage(m, 'buffer', {}, { logger: log, reuploadRequest: sock.updateMediaMessage }); p.audio_b64 = buf.toString('base64') }
         if (!p.text && !p.audio_b64) continue
-        await post('/whatsapp/inbound', p)
+        await postRetry('/whatsapp/inbound', p)
       } catch (e) { console.log('inbound error', String(e).slice(0, 200)) }
     }
   })
