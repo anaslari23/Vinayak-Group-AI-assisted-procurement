@@ -1,29 +1,10 @@
 {% extends "base.html" %}{% block body %}
-<h1>1-2 · Capture a requirement, match the item code</h1>
-<p class="sub">Paste a WhatsApp-style message or upload a short voice note (Sarvam speech-to-text, up to ~30 s). Claude structures it; code matches it to the ERP item list.</p>
-<form method="post" enctype="multipart/form-data" class="card">
-<textarea name="text" rows="4" placeholder="e.g. Amara tower 2 toilet floor waterproofing, around 13400 sqft, need by Dec 5, same spec as mock-up"></textarea>
-<p class="mut" style="margin:8px 0 4px">or a voice note (wav/mp3):</p><input type="file" name="audio" accept="audio/*">
-<p><button>Capture and match</button></p></form>
-{% if err %}<div class="banner">{{err}}</div>{% endif %}
-{% if result %}{% set p=result.parsed %}{% set m=result.match %}
-<div class="card"><b>Structured requirement</b> <span class="pill">{{result.channel}}</span>
-<table><tr><th>Item</th><td>{{p.item_description}}</td><th>Category</th><td>{{p.category}}</td></tr>
-<tr><th>Project</th><td>{{p.project or '-'}}</td><th>Location</th><td>{{p.location or '-'}}</td></tr>
-<tr><th>Quantity</th><td>{{p.quantity or '-'}} {{p.uom or ''}}</td><th>Needed by</th><td>{{p.needed_by or '-'}}</td></tr></table>
-{% if p.missing %}<p class="warn">The HOD would need to ask back: {{p.missing|join(', ')}}</p>{% endif %}</div>
-<div class="card"><b>Item code result:</b>
-{% if m.status=='matched_high' %}<span class="pill ok">matched with high confidence (agent proceeds, logged)</span>{% elif m.status=='needs_back_office_confirm' %}<span class="pill warn">needs back-office confirmation</span>{% elif m.status=='conflict_in_erp' %}<span class="pill bad">conflict in the ERP, back office to decide</span>{% elif m.status=='suggest_new_code' %}<span class="pill bad">no good match, new code drafted</span>{% elif m.status=='needs_more_info' %}<span class="pill warn">needs more information</span>{% else %}<span class="pill">no match</span>{% endif %}
-<span class="mut" style="font-size:12px"> ERP list loaded {{m.erp_loaded}}</span>
-{% if m.message %}<p>{{m.message}}</p>{% endif %}
-{% if m.questions_for_requester %}<p class="warn"><b>Question back to the requester:</b> {{m.questions_for_requester|join(' ')}}</p>{% endif %}
-{% if m.candidates %}<table><tr><th>ERP code</th><th>Description</th><th>Confidence</th><th>Why</th><th></th></tr>
-{% for c in m.candidates %}<tr class="{{'best' if loop.first and m.status in ['matched_high','needs_back_office_confirm']}}"><td><b>{{c.code}}</b></td><td>{{c.description[:90]}}</td><td class="n">{{c.confidence}} <span class="mut">{{c.level}}</span></td><td style="font-size:13px">{{c.why}}</td>
-<td><form method="post" action="/requirement/accept" style="margin:0"><input type="hidden" name="text" value="{{result.raw}}"><input type="hidden" name="code" value="{{c.code}}"><button class="sec" style="padding:3px 10px">Accept</button></form></td></tr>{% endfor %}</table>{% endif %}
-{% if m.duplicate_warning %}<p class="warn">Duplicate warning: {{m.duplicate_warning.note}} ({{m.duplicate_warning.group|join(', ')}})</p>{% endif %}
-{% if m.flags %}<ul class="r">{% for f in m.flags %}<li><b>{{f.flag}}</b>: {{f.message}}</li>{% endfor %}</ul>{% endif %}
-{% if m.new_code_suggestion %}{% set n=m.new_code_suggestion %}<div class="banner"><b>Draft new code (needs back-office approval, never created automatically):</b> {{n.code}} · {{n.description}} · {{n.unit}}. Numbers already taken: {{n.taken_numbers|join(', ')}}.<br>Nearest existing codes and why rejected: {% for x in n.nearest %}{{x.code}} ({{x.why_rejected}}){{'; ' if not loop.last}}{% endfor %}</div>{% endif %}
-<p class="mut">Accepting saves the pair (wording to code); the same wording is matched to it first next time. Codes are never created or edited in the ERP by this tool. New-code numbering follows the list's own pattern and is a draft.</p></div>
-{% endif %}
-{% if recent %}<h2>Recent</h2>{% for r in recent %}<div class="card mut">{{r.raw[:140]}} → {{r.match.verdict}} {{r.match.candidates[0].code if r.match.candidates}}</div>{% endfor %}{% endif %}
+<h1>1-2 · What the agent captured and matched</h1>
+<p class="sub">Captured automatically: the agent reads each requirement (text or voice, any language) from WhatsApp, Telegram or a call, structures it, and matches the item code. This page shows what it captured. Nothing is entered here.</p>
+<div class="banner">Item codes come from the item master loaded for this deployment (synthetic in the public demo). The agent never creates or edits a code; it recommends, and a person confirms anything it is not sure about.</div>
+<table><tr><th>Case</th><th>Requirement as received</th><th>Structured</th><th>Item code</th><th>Status</th></tr>
+{% for r in rows %}<tr><td><a href="/cases/{{r.id}}">#{{r.id}}</a></td><td>{{r.raw[:110]}}</td>
+<td>{{r.parsed.item_description or '-'}}{% if r.parsed.quantity %}, {{r.parsed.quantity}} {{r.parsed.uom or ''}}{% endif %}{% if r.parsed.project %} · {{r.parsed.project}}{% endif %}{% if r.parsed.needed_by %} · by {{r.parsed.needed_by}}{% endif %}</td>
+<td>{{r.data.item_code or '-'}}</td><td>{{STATE_LABEL.get(r.state, r.state)}}</td></tr>{% else %}<tr><td colspan="5" class="mut">No requirements yet. Send one to the WhatsApp group, the Telegram bot, or the phone simulator.</td></tr>{% endfor %}</table>
+<p><a class="btn" href="/sim">Try it on the phones</a> <a class="btn sec" href="/erp-cleanup" style="background:#fff;color:#1c1917;border:1px solid #e7e2db">ERP clean-up report</a></p>
 {% endblock %}

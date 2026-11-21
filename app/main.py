@@ -67,9 +67,10 @@ def home(request: Request):
 # ---- steps 1+2
 @app.get("/requirement", response_class=HTMLResponse)
 def req_form(request: Request):
-    c = db.con(); recent = [dict(r) for r in c.execute("select * from requirements order by id desc limit 5")]; c.close()
-    for r in recent: r["parsed"] = json.loads(r["parsed"]); r["match"] = json.loads(r["match"])
-    return page(request, "requirement.html", "1", recent=recent, result=None)
+    c = db.con(); rows = [dict(r) for r in c.execute("select id, state, data from cases order by id desc limit 25")]; c.close()
+    for r in rows:
+        r["data"] = json.loads(r["data"] or "{}"); r["raw"] = r["data"].get("raw", ""); r["parsed"] = r["data"].get("parsed") or {}
+    return page(request, "requirement.html", "1", rows=rows)
 
 
 @app.post("/requirement", response_class=HTMLResponse)
