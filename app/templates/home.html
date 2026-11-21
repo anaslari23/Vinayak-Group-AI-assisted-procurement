@@ -1,7 +1,9 @@
 {% extends "base.html" %}{% block body %}
 {% if tender.synthetic %}<div class="banner"><b>Synthetic demo package.</b> The project, vendors, rates and vendor history here are invented. Built for the Vinayak Group procurement problem; no Vinayak data is included.</div>{% endif %}<h1>From site requirement to vendor comparative</h1>
+<div class="card" style="border-color:#4f46e5"><b>Meet the agent.</b> It lives in chat. Send a requirement as text or a voice note and it does the rest; the HOD only makes the final call.
+<p style="margin:8px 0 0"><a class="btn" href="/sim">Open the two phones</a> <a class="btn" href="/cases">Cases and timeline</a> <a class="btn" href="/vendors">Vendor ledger</a> <a class="btn" href="https://t.me/vinayak_procure_demo_bot">Telegram bot</a></p></div>
 <p class="sub">{{tender.project}} · {{tender.package}}. The agent reads messy quotes, puts them on a like-for-like landed cost, ranks vendors with reasons, and asks the HOD. It never selects, orders or pays.</p>
-<div class="grid">
+<h2>Under the hood: the six steps, each also usable on its own</h2><div class="grid">
 <div class="card"><b>1-2 · Capture and item code</b><p class="mut">Form, WhatsApp text or voice note, matched to ERP item codes with duplicate flags.</p><a class="btn" href="/requirement">Open</a> <span class="mut">{{n.requirements}} saved</span></div>
 <div class="card"><b>3 · RFQ</b><p class="mut">Draft RFQs and send to test inboxes only (hard allowlist).</p><a class="btn" href="/rfq">Open</a> <span class="mut">{{n.mail_log}} mails logged</span></div>
 <div class="card"><b>4 · Read quotes</b><p class="mut">PDF, scan or Excel to normalised rates, GST, payment terms, validity.</p><a class="btn" href="/quotes">Open</a> <span class="mut">{{n.quotes}} quotes</span></div>
