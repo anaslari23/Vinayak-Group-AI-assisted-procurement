@@ -47,7 +47,7 @@ def match(requirement: str, category_hint: str | None = None) -> dict:
         ia = attrs(it["descr"])
         fz = fuzz.token_set_ratio(_norm(requirement), _norm(it["descr"]))
         attr_hit = ra["surface"] and ra["surface"] == ia["surface"] and ra["element"] == ia["element"]
-        s = fz * 0.6 + (40 if attr_hit else 0)
+        s = fz * 0.6 + (40 if attr_hit else 0) + (0 if re.search(r"\.[AB]$", it["code"]) else 3)  # prefer the plain code over -A/-B variants
         scored.append({**it, "score": round(s, 1), "fuzzy": round(fz, 1), "attr_match": bool(attr_hit)})
     scored.sort(key=lambda x: -x["score"])
     count = {}

@@ -18,8 +18,8 @@
 <table><tr><th>ERP code</th><th>Description</th><th>Score</th><th>Notes</th></tr>
 {% for c in m.candidates %}<tr class="{{'best' if loop.first and m.verdict=='match'}}"><td><b>{{c.code}}</b></td><td>{{c.descr[:110]}}</td><td class="n">{{c.score}}</td>
 <td>{% if c.attr_match %}surface and element match{% endif %}{% if c.code_repeats>1 %} <span class="warn">code listed {{c.code_repeats}}× in the master</span>{% endif %}</td></tr>{% endfor %}</table>
-{% if m.duplicates_of_best %}<p class="warn">Likely duplicates / variants of the best match: {% for d in m.duplicates_of_best %}{{d.code}}{{', ' if not loop.last}}{% endfor %}. Consolidate before creating anything new.</p>{% endif %}
-<p class="mut">Item codes are from the ERP export in the data pack; new-code numbering is ASSUMED, not a documented Farvision rule.</p></div>
+{% if m.duplicates_of_best %}<p class="warn">Near-duplicates and A/B variants of the best match (HOD to consolidate): {% for d in m.duplicates_of_best %}{{d.code}}{{', ' if not loop.last}}{% endfor %}.</p>{% endif %}
+<p class="mut">Codes come from the item master loaded for this deployment (synthetic in the public demo). New-code numbering is ASSUMED, not a documented Farvision rule.</p></div>
 {% endif %}
 {% if recent %}<h2>Recent</h2>{% for r in recent %}<div class="card mut">{{r.raw[:140]}} → {{r.match.verdict}} {{r.match.candidates[0].code if r.match.candidates}}</div>{% endfor %}{% endif %}
 {% endblock %}
