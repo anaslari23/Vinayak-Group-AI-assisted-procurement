@@ -486,7 +486,7 @@ def stock_page(request: Request, q: str = ""):
 
 
 # ---- the calling agent
-import base64 as _b64
+import asyncio, base64 as _b64
 from . import call as callmod
 
 
@@ -499,7 +499,7 @@ def call_page(request: Request):
 async def call_turn(file: UploadFile = File(...), call_id: str = Form("")):
     data = await file.read()
     try:
-        r = callmod.turn(call_id or None, data, file.filename or "voice.webm")
+        r = await asyncio.to_thread(callmod.turn, call_id or None, data, file.filename or "voice.webm")   # off the event loop: a turn takes seconds
     except Exception as e:
         return JSONResponse({"error": f"{type(e).__name__}: {e}"}, 400)
     wav = r.pop("wav"); r["audio_b64"] = _b64.b64encode(wav).decode(); AUDIO[r["call_id"]] = wav

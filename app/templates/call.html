@@ -1,25 +1,62 @@
 {% extends "base.html" %}{% block body %}
 <h1>Call the agent</h1>
-<p class="sub">Speak the way you would on the phone, in any of: {{langs.values()|join(', ')}}. The agent detects your language, asks what is missing, reads the requirement back for you to confirm, and replies in your language. Only after you say yes does it carry on. (A real phone number can be pointed at this same agent; see the README.)</p>
+<p class="sub">A hands-free call, free, from any phone or laptop browser. Speak in any of: {{langs.values()|join(', ')}}. The agent detects your language, asks what is missing, reads the requirement back and waits for a yes, and answers aloud in your language. Use headphones so it does not hear itself.</p>
 <div class="card" style="text-align:center">
-<button id="talk" style="font-size:18px;padding:14px 28px">🎤 Tap to speak</button>
-<p class="mut" id="state">Tap, speak, tap again to send. Your browser will ask for the microphone (works on localhost or https).</p>
+<div id="orb" style="width:96px;height:96px;border-radius:50%;margin:8px auto;background:#e7e2db;display:flex;align-items:center;justify-content:center;font-size:40px;transition:all .15s">📞</div>
+<button id="start" style="font-size:18px;padding:14px 30px">📞 Start call</button>
+<button id="end" class="sec" style="font-size:18px;padding:14px 30px;display:none">End call</button>
+<p class="mut" id="state" style="margin-top:10px">Tap Start, allow the microphone, then just talk. Pause when you are done.</p>
+<p class="mut" style="font-size:12px"><span id="timer">0:00</span> · <span id="lang"></span> · <a href="#" id="manual">use tap-to-send instead</a></p>
 </div>
 <div id="log" class="card" style="min-height:120px"></div>
 <script>
-let rec, chunks=[], callId='', busy=false; const log=document.getElementById('log'), st=document.getElementById('state'), btn=document.getElementById('talk');
-function add(who,text,lang){const d=document.createElement('div');d.style.cssText='margin:6px 0;padding:8px 10px;border-radius:8px;background:'+(who==='you'?'#d9fdd3':'#f4efe7')+';white-space:pre-wrap';
- d.innerHTML='<span class="mut" style="font-size:12px">'+(who==='you'?'You':'Agent')+(lang?' · '+lang:'')+'</span><br>'+text.replace(/</g,'&lt;');log.appendChild(d);d.scrollIntoView();}
-btn.onclick=async()=>{
- if(busy)return;
- if(rec&&rec.state==='recording'){rec.stop();return;}
- try{const s=await navigator.mediaDevices.getUserMedia({audio:true});rec=new MediaRecorder(s);chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
-  rec.onstop=async()=>{s.getTracks().forEach(t=>t.stop());btn.textContent='🎤 Tap to speak';busy=true;st.textContent='Listening and thinking…';
-   const fd=new FormData();fd.append('file',new Blob(chunks,{type:rec.mimeType}),'voice.webm');fd.append('call_id',callId);
-   const r=await fetch('/call/turn',{method:'POST',body:fd});const j=await r.json();busy=false;
-   if(j.error){st.textContent='Problem: '+j.error;return;}
-   callId=j.call_id;add('you',j.heard||'(nothing heard)',j.lang_name);add('agent',j.reply,j.lang_name);
-   st.textContent=j.done?'Call complete: everything is confirmed. Case #'+j.case_id+' continues on its own.':'Your turn: tap and answer.';
-   const a=new Audio('data:audio/wav;base64,'+j.audio_b64);a.play();};
-  rec.start();btn.textContent='■ Tap to send';st.textContent='Recording…';}catch(e){st.textContent='Microphone not available: '+e.message;}};
+const $=id=>document.getElementById(id);
+const SILENCE_MS=1300, MIN_SPEECH_MS=350, SPEECH_RMS=0.035, MAX_TURN_MS=30000;
+let stream, ctx, an, buf, rec, chunks=[], callId='', live=false, manual=false, player=new Audio(), t0=0, tick=null;
+const SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+function add(who,text,lang){const d=document.createElement('div');d.style.cssText='margin:6px 0;padding:8px 10px;border-radius:8px;background:'+(who==='you'?'#d9fdd3':'#f4efe7')+';white-space:pre-wrap;text-align:left';
+ d.innerHTML='<span class="mut" style="font-size:12px">'+(who==='you'?'You':'Agent')+(lang?' · '+lang:'')+'</span><br>'+text.replace(/</g,'&lt;');$('log').appendChild(d);d.scrollIntoView({block:'nearest'});}
+function status(t,color){$('state').textContent=t;$('orb').style.background=color||'#e7e2db';}
+function rms(){an.getFloatTimeDomainData(buf);let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]*buf[i];return Math.sqrt(s/buf.length);}
+
+async function startCall(){
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}
+ catch(e){status('Microphone not available: '+e.message+' (needs https or localhost).');return;}
+ ctx=new (window.AudioContext||window.webkitAudioContext)();an=ctx.createAnalyser();an.fftSize=1024;buf=new Float32Array(an.fftSize);ctx.createMediaStreamSource(stream).connect(an);
+ player.src=SILENT;player.play().catch(()=>{});            // unlock audio playback on phones (needs this user gesture)
+ live=true;callId='';t0=Date.now();$('start').style.display='none';$('end').style.display='';
+ tick=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$('timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');},500);
+ listen();
+}
+function endCall(msg){live=false;clearInterval(tick);try{rec&&rec.state==='recording'&&rec.stop();}catch(e){}stream&&stream.getTracks().forEach(t=>t.stop());ctx&&ctx.close();
+ $('start').style.display='';$('end').style.display='none';status(msg||'Call ended.');}
+
+function listen(){
+ if(!live)return;status('Listening… speak now','#d9fdd3');
+ chunks=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+ let spoke=0, started=0, lastVoice=0, done=false;
+ rec.onstop=()=>{if(done)return;done=true;if(spoke<MIN_SPEECH_MS){if(live)listen();return;}send(new Blob(chunks,{type:rec.mimeType}));};
+ rec.start();const begin=Date.now();
+ (function loop(){
+  if(!live||done||rec.state!=='recording')return;
+  const now=Date.now(),v=rms()>SPEECH_RMS;
+  if(v){if(!started)started=now;lastVoice=now;spoke=now-started;$('orb').style.transform='scale(1.15)';}else $('orb').style.transform='scale(1)';
+  if(started&&now-lastVoice>SILENCE_MS){rec.stop();return;}             // they stopped talking
+  if(now-begin>MAX_TURN_MS){rec.stop();return;}
+  requestAnimationFrame(loop);})();
+}
+async function send(blob){
+ status('Thinking…','#fde68a');
+ const fd=new FormData();fd.append('file',blob,'voice.webm');fd.append('call_id',callId);
+ let j;try{const r=await fetch('/call/turn',{method:'POST',body:fd});j=await r.json();}catch(e){status('Connection problem, listening again.');listen();return;}
+ if(j.error){add('agent','(problem: '+j.error+')');if(live)listen();return;}
+ callId=j.call_id;$('lang').textContent=j.lang_name||'';
+ add('you',j.heard||'(nothing heard)',j.lang_name);add('agent',j.reply,j.lang_name);
+ status('Agent speaking…','#c7d2fe');
+ player.src='data:audio/wav;base64,'+j.audio_b64;
+ player.onended=()=>{if(j.done){endCall('Call complete. Everything is confirmed; case #'+j.case_id+' continues on its own.');}else listen();};
+ player.play().catch(()=>{status('Tap the screen to hear the reply');document.body.addEventListener('click',()=>player.play(),{once:true});});
+}
+$('start').onclick=startCall;$('end').onclick=()=>endCall();
+$('manual').onclick=e=>{e.preventDefault();alert('Tap Start, then speak. Tap-to-send is not needed: the call detects when you stop.');};
 </script>{% endblock %}
