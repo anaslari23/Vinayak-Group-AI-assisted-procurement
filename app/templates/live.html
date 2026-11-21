@@ -24,13 +24,14 @@ svg.cv{width:100%;height:auto;background:#fff;border:1px solid var(--line);borde
 .av{width:32px;height:32px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-weight:600}.wam{padding:10px;max-height:560px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
 .b{max-width:90%;padding:7px 10px;border-radius:9px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.12);animation:rise .35s}.b.agent{background:#fff;align-self:flex-start}.b.engineer{background:#d9fdd3;align-self:flex-end}.b.hod{background:#cfe8ff;align-self:flex-end}
 .b .w{font-size:11px;color:#667781;margin-bottom:2px}.b.demo{align-self:center;background:#fff3cd;font-size:11.5px;color:#7a5b00;text-align:center}.b .t{font-size:10px;color:#667781;text-align:right}.b.choice{font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px}.stat b{display:block;font-size:20px;line-height:1.2}.stat span{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}.bar2{height:5px;background:#efe9df;border-radius:3px;margin-top:5px;overflow:hidden}.bar2 i{display:block;height:100%;background:#16a34a;transition:width .6s}@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
 .idle{background:#fff;border:1px dashed #c9c2b6;border-radius:12px;padding:14px 16px;margin-top:12px;font-size:14px}.req{font-size:15px;margin:6px 0 2px}.req b{font-weight:600}
 .cvh{font:11px system-ui;fill:#8a8578;letter-spacing:.04em}
 </style>
 <div class="hd"><h1 style="margin:0">Live flow</h1><span class="pill2" id="status"><span class="dot"></span><span>connecting</span></span><span class="sm" id="age"></span></div>
 <div class="req" id="bubble"></div>
 <div class="sm">Driven from WhatsApp (agent +91 89811 07767). This page only watches: nodes fill in from what the agent actually did.</div>
-<div class="flows" id="flows"></div>
+<div class="stats" id="stats"></div><div class="flows" id="flows"></div>
 <div class="grid2"><div><svg class="cv" id="cv" viewBox="0 0 680 210" role="img" aria-label="Live flow of the current requirement"></svg>
 <div class="now" id="now"></div><div class="log" id="log"></div></div>
 <div class="wa"><div class="wah"><span class="av">V</span><div><b>Site team group</b><div class="sm" style="font-size:11px">WhatsApp · the agent is a member</div></div></div><div class="wam" id="wam"><div class="sm" style="text-align:center;margin-top:30px">Messages appear here as they happen</div></div></div></div>
@@ -62,15 +63,19 @@ function dataHTML(d){if(!d)return'';let h='';if(d.kv)h+='<div class="kv">'+d.kv.
 function now(j){const order=j.steps;let f=order.find(s=>s.status==='waiting')||order.find(s=>s.status==='active');if(!f){const d=order.filter(s=>s.status==='done');f=d[d.length-1]}if(!f)return;
  const idx=order.indexOf(f)+1;$('now').innerHTML=`<h3>${idx}. ${esc(f.title)} <span class="sm">${esc(f.summary||'')}</span></h3>`+f.checks.map((c,i)=>checkHTML(c,f.key,i)).join('')+dataHTML(f.data);}
 let chatSig='';function chat(j){const sg=JSON.stringify(j.chat||[]);if(sg===chatSig)return;chatSig=sg;const el=$('wam');const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<60;el.innerHTML=(j.chat||[]).map(m=>{const who=m.who==='agent'?'Procurement agent'+(m.to==='hod'?' → admins':''):(m.who==='hod'?'Admin':(m.who==='engineer'?'Site engineer':''));return `<div class="b ${m.who} ${m.choice?'choice':''}">${who?`<div class="w">${who}</div>`:''}${esc(m.text)}<div class="t">${esc(m.ts)}</div></div>`}).join('')||'<div class="sm" style="text-align:center;margin-top:30px">Messages appear here as they happen</div>';if(atBottom)el.scrollTop=el.scrollHeight}
+function stats(j){const st=j?j.steps:[];const done=st.filter(x=>x.status==='done'||x.status==='skipped').length,V=(j&&j.vendors)||[],rep=V.filter(x=>x.state==='replied').length;
+ const cmp=st.find(x=>x.key==='compare'),top=cmp&&cmp.summary?cmp.summary.replace('Top: ',''):'–';
+ const el=(j&&j.started)?Math.max(0,Math.round(j.started)):0,t=el?Math.floor(el/60)+'m '+String(el%60).padStart(2,'0')+'s':'–';
+ $('stats').innerHTML=`<div class="stat"><b>${done} / ${st.length||9}</b><span>steps done</span><div class="bar2"><i style="width:${st.length?100*done/st.length:0}%"></i></div></div><div class="stat"><b>${V.length?rep+' / '+V.length:'–'}</b><span>vendors replied</span></div><div class="stat"><b style="font-size:14px;padding:3px 0">${esc(trunc(top,30))}</b><span>top ranked</span></div><div class="stat"><b>${t}</b><span>elapsed</span></div>`}
 const EMPTY={case_id:null,steps:KEYS.map(k=>({key:k,status:'pending',sub:''})),vendors:[]};
 function render(j){if(!j.case_id){$('status').innerHTML='<span class="dot"></span><span>idle</span>';$('age').textContent='';$('bubble').innerHTML='<span class="sm">No requirement in the last 30 minutes.</span>';
-  if(sig!=='idle'){sig='idle';cur=null;paint(EMPTY);chatSig='';$('wam').innerHTML='<div class="sm" style="text-align:center;margin-top:30px">Waiting for a message in the group</div>'}
+  if(sig!=='idle'){sig='idle';cur=null;paint(EMPTY);stats(null);chatSig='';$('wam').innerHTML='<div class="sm" style="text-align:center;margin-top:30px">Waiting for a message in the group</div>'}
   $('now').innerHTML='<div class="idle">Post a requirement in the WhatsApp group (text or voice, any language), e.g. <i>"need 200 bags cement at Demo Villas by 15 Dec"</i>. A new flow starts here within a second.</div>';$('log').innerHTML='';return}
  if(j.case_id!==cur){cur=j.case_id;seen=new Set();sig=''}
  $('bubble').innerHTML=`<b>#${j.case_id}</b> “${esc(j.raw)}”`;
  $('age').textContent=j.age<60?'updated just now':'last activity '+Math.round(j.age/60)+' min ago';
  $('status').innerHTML=`<span class="dot ${j.waiting?'wait':(j.state!=='DECIDED'?'live':'')}"></span><span>${esc(j.label)}${j.waiting?' · waiting for '+esc(j.waiting.replace('engineer','the requester').replace('hod','the admins')):''}</span>`;
- const s=JSON.stringify([j.steps.map(x=>x.status+x.sub),j.vendors]);if(s!==sig){sig=s;paint(j)}now(j);chat(j);
+ const s=JSON.stringify([j.steps.map(x=>x.status+x.sub),j.vendors]);if(s!==sig){sig=s;paint(j)}stats(j);now(j);chat(j);
  $('log').innerHTML=j.error?'<div class="no">Problem: '+esc(j.error)+'</div>':'<b>Agent log</b>'+j.events.map(e=>`<div>${e.ts} · ${esc(e.actor)} · ${esc(e.text)}</div>`).join('')}
 async function tick(){try{render(await (await fetch('/api/flow'+location.search)).json())}catch(e){}}
 async function flows(){try{const l=await (await fetch('/api/cases')).json();$('flows').innerHTML=l.length>1?l.slice(0,5).map(c=>`<div class="fl ${c.id===cur?'on':''}"><b>#${c.id}</b> ${esc(trunc(c.raw,38))}<div class="sm" style="font-size:11px">${esc(c.label)}</div><i style="width:${Math.max(6,c.pct)}%"></i></div>`).join(''):''}catch(e){}}

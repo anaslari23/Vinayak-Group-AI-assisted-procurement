@@ -29,6 +29,12 @@ def ages():
     return out
 
 
+def _elapsed(ev):
+    from datetime import datetime
+    try: return (datetime.fromisoformat(ev[-1]["ts"].replace(" ", "T")) - datetime.fromisoformat(ev[0]["ts"].replace(" ", "T"))).total_seconds() if ev else 0
+    except Exception: return 0
+
+
 def latest_case():
     a = {k: v for k, v in ages().items() if v < ACTIVE_MIN * 60}
     return max(a) if a else None
@@ -170,4 +176,4 @@ def build(cid):
             chat.append({"who": "demo", "text": e["text"][:200], "ts": e["ts"][11:16]})
     err = [e for e in ev if e["kind"] == "error"]
     return {"case_id": cid, "state": state, "label": engine.STATE_TEXT.get(state, state), "waiting": c["waiting"], "raw": d.get("raw", ""), "channel": d.get("channel", ""), "error": err[-1]["text"] if err else None,
-            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "chat": chat[-14:], "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"], "age": round(ages().get(cid, 0))}
+            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "chat": chat[-14:], "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"], "age": round(ages().get(cid, 0)), "started": _elapsed(ev)}
