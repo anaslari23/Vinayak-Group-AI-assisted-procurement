@@ -24,30 +24,35 @@ svg.cv{width:100%;height:auto;background:#fff;border:1px solid var(--line);borde
 .av{width:32px;height:32px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-weight:600}.wam{padding:10px;max-height:560px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
 .b{max-width:90%;padding:7px 10px;border-radius:9px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.12);animation:rise .35s}.b.agent{background:#fff;align-self:flex-start}.b.engineer{background:#d9fdd3;align-self:flex-end}.b.hod{background:#cfe8ff;align-self:flex-end}
 .b .w{font-size:11px;color:#667781;margin-bottom:2px}.b.demo{align-self:center;background:#fff3cd;font-size:11.5px;color:#7a5b00;text-align:center}.b .t{font-size:10px;color:#667781;text-align:right}.b.choice{font-weight:600}
+.idle{background:#fff;border:1px dashed #c9c2b6;border-radius:12px;padding:14px 16px;margin-top:12px;font-size:14px}.req{font-size:15px;margin:6px 0 2px}.req b{font-weight:600}
+.cvh{font:11px system-ui;fill:#8a8578;letter-spacing:.04em}
 </style>
-<div class="hd"><h1 style="margin:0">Live flow</h1><span class="pill2" id="status"><span class="dot"></span><span>connecting</span></span></div>
-<p class="sub" style="margin:6px 0">Each requirement starts its own flow. The agent runs it on its own; nodes light up as it works, vendors branch out as they are asked and reply. Requirements arrive through WhatsApp (agent number +91 89811 07767), Telegram or a voice call, and admins decide in the WhatsApp group. Nothing is pressed here.</p>
-<div class="flows" id="flows"></div><div id="bubble"></div>
-<div class="grid2"><div><svg class="cv" id="cv" viewBox="0 0 680 400" role="img" aria-label="Live flow of the current requirement"></svg>
-<div class="now" id="now"><div class="sm">Waiting for a requirement…</div></div><div class="log" id="log"></div></div>
+<div class="hd"><h1 style="margin:0">Live flow</h1><span class="pill2" id="status"><span class="dot"></span><span>connecting</span></span><span class="sm" id="age"></span></div>
+<div class="req" id="bubble"></div>
+<div class="sm">Driven from WhatsApp (agent +91 89811 07767). This page only watches: nodes fill in from what the agent actually did.</div>
+<div class="flows" id="flows"></div>
+<div class="grid2"><div><svg class="cv" id="cv" viewBox="0 0 680 210" role="img" aria-label="Live flow of the current requirement"></svg>
+<div class="now" id="now"></div><div class="log" id="log"></div></div>
 <div class="wa"><div class="wah"><span class="av">V</span><div><b>Site team group</b><div class="sm" style="font-size:11px">WhatsApp · the agent is a member</div></div></div><div class="wam" id="wam"><div class="sm" style="text-align:center;margin-top:30px">Messages appear here as they happen</div></div></div></div>
 <script>
 const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const POS={capture:[40,24],clarify:[194,24],item:[348,24],stock:[502,24],rfq:[40,140],quotes:[194,140],compare:[348,140],hod:[502,140],outcome:[502,300]};
-const NAME={capture:['Capture','text or voice'],clarify:['Ask, confirm','read-back, yes'],item:['Match code','ERP + materials'],stock:['Check stock','transfer first'],rfq:['Send RFQs','test inboxes'],quotes:['Read quotes','chase, clarify'],compare:['Rank vendors','price, history'],hod:['Admins decide','in WhatsApp'],outcome:['Check-in, ledger','feeds next rank']};
-const LINKS=[['capture','clarify'],['clarify','item'],['item','stock'],['stock','rfq','L'],['rfq','quotes'],['quotes','compare'],['compare','hod'],['hod','outcome','D']];
+const W=120,H=56,POS={capture:[12,24],clarify:[146,24],item:[280,24],stock:[414,24],rfq:[548,24],quotes:[548,134],compare:[414,134],hod:[280,134],outcome:[146,134]};
+const NAME={capture:'Capture',clarify:'Ask, confirm',item:'Match code',stock:'Check stock',rfq:'Send RFQs',quotes:'Read quotes',compare:'Rank vendors',hod:'Admins decide',outcome:'Outcome'};
+const KEYS=Object.keys(POS);
 let seen=new Set(),lastKey='',cur=null,sig='';
 function trunc(t,n){t=t||'';return t.length>n?t.slice(0,n-1)+'…':t}
-function paint(j){const S={};j.steps.forEach(s=>S[s.key]=s);let h='<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a8578" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>';
- LINKS.forEach(([a,b,k])=>{const [x1,y1]=POS[a],[x2,y2]=POS[b];const sa=S[a].status,sb=S[b].status;const cls='ar '+((sa==='done'||sa==='skipped')&&(sb==='active'||sb==='waiting')?'flow':((sa==='done'&&sb==='done')?'dn':''));let d;
-  if(k==='L')d=`M${x1+68} ${y1+56} L${x1+68} ${y1+90} L${x2+68} ${y1+90} L${x2+68} ${y2-0}`.replace(/L\d+ \d+ L\d+ \d+$/,'');
-  if(k==='L'){d=`M570 80 L570 110 L108 110 L108 140`}else if(k==='D'){d=`M570 196 L570 298`}else d=`M${x1+136} ${y1+28} L${x2-2} ${y2+28}`;
-  h+=`<path class="${cls}" d="${d}" marker-end="url(#ah)"/>`;});
- h+='<path class="ar" d="M502 328 L486 328" marker-end="url(#ah)"/><path class="ar" stroke-dasharray="4 4" d="M416 300 L416 198" marker-end="url(#ah)"/>';
- h+='<g class="nd pending"><rect x="348" y="300" width="136" height="56" rx="8" stroke-width="0.5"/><text class="t1" x="416" y="322" text-anchor="middle">Next requirement</text><text class="t2" x="416" y="342" text-anchor="middle">ranks smarter</text></g>';
- for(const k in POS){const [x,y]=POS[k];const s=S[k];const sub=(s.summary&&s.status!=='pending')?trunc(s.summary,20):NAME[k][1];
-  h+=`<g class="nd ${s.status}"><rect x="${x}" y="${y}" width="136" height="56" rx="8" stroke-width="0.8"/><text class="t1" x="${x+68}" y="${y+22}" text-anchor="middle">${esc(NAME[k][0])}</text><text class="t2" x="${x+68}" y="${y+42}" text-anchor="middle">${esc(sub)}</text>${s.status==='done'?`<text class="ck" x="${x+122}" y="${y+16}" text-anchor="middle">✓</text>`:''}</g>`;}
- (j.vendors||[]).slice(0,8).forEach((v,i)=>{const x=40+(i%4)*152,y=222+Math.floor(i/4)*34;h+=`<g class="vn ${v.state}" style="animation-delay:${i*90}ms"><rect x="${x}" y="${y}" width="140" height="26" rx="6" stroke-width="0.8"/><text x="${x+8}" y="${y+17}">${esc(trunc(v.name,14))}${v.landed?' · '+esc(v.landed):(v.state==='chased'?' · chased':'')}</text></g>`;});
+function paint(j){const S={};j.steps.forEach(s=>S[s.key]=s);const V=(j.vendors||[]).slice(0,8);const vh=V.length?250+Math.ceil(V.length/4)*34:206;$('cv').setAttribute('viewBox',`0 0 680 ${vh}`);
+ let h='<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a8578" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>';
+ h+=`<text class="cvh" x="12" y="14">CASE #${j.case_id||'–'} · ${esc((j.channel||'').toUpperCase())}</text>`;
+ for(let i=0;i<KEYS.length-1;i++){const a=KEYS[i],b=KEYS[i+1],[x1,y1]=POS[a],[x2,y2]=POS[b],sa=S[a].status,sb=S[b].status;
+  const cls='ar '+((sa==='done'||sa==='skipped')&&(sb==='active'||sb==='waiting')?'flow':((sa==='done'||sa==='skipped')&&(sb==='done'||sb==='skipped')?'dn':''));
+  const d=y1!==y2?`M${x1+W/2} ${y1+H} L${x2+W/2} ${y2-2}`:(x2>x1?`M${x1+W} ${y1+H/2} L${x2-2} ${y2+H/2}`:`M${x1} ${y1+H/2} L${x2+W+2} ${y2+H/2}`);
+  h+=`<path class="${cls}" d="${d}" marker-end="url(#ah)"/>`;}
+ if(V.length){h+=`<text class="cvh" x="12" y="${232}">VENDORS · ${V.filter(v=>v.state==='replied').length} OF ${V.length} REPLIED</text>`;
+  V.forEach((v,i)=>{const x=12+(i%4)*167,y=242+Math.floor(i/4)*34;h+=`<path class="ar ${v.state==='replied'?'dn':'flow'}" stroke-width="1" d="M${POS.quotes[0]+W/2} ${POS.quotes[1]+H} L${x+75} ${y}"/>`;});
+  V.forEach((v,i)=>{const x=12+(i%4)*167,y=242+Math.floor(i/4)*34;h+=`<g class="vn ${v.state}" style="animation-delay:${i*90}ms"><rect x="${x}" y="${y}" width="155" height="26" rx="6" stroke-width="0.8"/><text x="${x+8}" y="${y+17}">${esc(trunc(v.name,12))}${v.landed?' · '+esc(v.landed):(v.state==='chased'?' · chased':' · waiting')}</text></g>`;});}
+ for(const k of KEYS){const [x,y]=POS[k];const s=S[k];const sub=s.status==='pending'?'':trunc(s.sub||'',19);
+  h+=`<g class="nd ${s.status}"><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="8" stroke-width="0.8"/><text class="t1" x="${x+W/2}" y="${y+(sub?22:33)}" text-anchor="middle">${esc(NAME[k])}</text>${sub?`<text class="t2" x="${x+W/2}" y="${y+42}" text-anchor="middle">${esc(sub)}</text>`:''}${s.status==='done'?`<text class="ck" x="${x+W-12}" y="${y+15}" text-anchor="middle">✓</text>`:''}</g>`;}
  $('cv').innerHTML=h;}
 function checkHTML(c,key,i){const id=key+'|'+c.text;const n=!seen.has(id);seen.add(id);const cls=c.ok===true?'ok':(c.ok===false?'no':'wn');return `<div class="ck ${n?'new':''}" style="animation-delay:${n?(i%6)*60:0}ms"><b class="${cls}">${c.ok===true?'✓':(c.ok===false?'✗':'!')}</b><span>${esc(c.text)}${c.tag?` <span class="tag">${esc(c.tag)}</span>`:''}</span></div>`}
 function dataHTML(d){if(!d)return'';let h='';if(d.kv)h+='<div class="kv">'+d.kv.filter(x=>x[1]).map(x=>`<span>${esc(x[0])}</span><span>${esc(x[1])}</span>`).join('')+'</div>';
@@ -57,13 +62,17 @@ function dataHTML(d){if(!d)return'';let h='';if(d.kv)h+='<div class="kv">'+d.kv.
 function now(j){const order=j.steps;let f=order.find(s=>s.status==='waiting')||order.find(s=>s.status==='active');if(!f){const d=order.filter(s=>s.status==='done');f=d[d.length-1]}if(!f)return;
  const idx=order.indexOf(f)+1;$('now').innerHTML=`<h3>${idx}. ${esc(f.title)} <span class="sm">${esc(f.summary||'')}</span></h3>`+f.checks.map((c,i)=>checkHTML(c,f.key,i)).join('')+dataHTML(f.data);}
 let chatSig='';function chat(j){const sg=JSON.stringify(j.chat||[]);if(sg===chatSig)return;chatSig=sg;const el=$('wam');const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<60;el.innerHTML=(j.chat||[]).map(m=>{const who=m.who==='agent'?'Procurement agent'+(m.to==='hod'?' → admins':''):(m.who==='hod'?'Admin':(m.who==='engineer'?'Site engineer':''));return `<div class="b ${m.who} ${m.choice?'choice':''}">${who?`<div class="w">${who}</div>`:''}${esc(m.text)}<div class="t">${esc(m.ts)}</div></div>`}).join('')||'<div class="sm" style="text-align:center;margin-top:30px">Messages appear here as they happen</div>';if(atBottom)el.scrollTop=el.scrollHeight}
-function render(j){if(!j.case_id){$('status').innerHTML='<span class="dot"></span><span>idle: waiting for a requirement</span>';$('bubble').innerHTML='';$('cv').innerHTML='';return}
- if(j.case_id!==cur){cur=j.case_id;seen=new Set()}
- $('bubble').innerHTML=`<div class="msg">${esc(j.raw)}<div class="sm" style="margin:3px 0 0">case #${j.case_id} · ${esc(j.channel)}</div></div>`;
+const EMPTY={case_id:null,steps:KEYS.map(k=>({key:k,status:'pending',sub:''})),vendors:[]};
+function render(j){if(!j.case_id){$('status').innerHTML='<span class="dot"></span><span>idle</span>';$('age').textContent='';$('bubble').innerHTML='<span class="sm">No requirement in the last 30 minutes.</span>';
+  if(sig!=='idle'){sig='idle';cur=null;paint(EMPTY);chatSig='';$('wam').innerHTML='<div class="sm" style="text-align:center;margin-top:30px">Waiting for a message in the group</div>'}
+  $('now').innerHTML='<div class="idle">Post a requirement in the WhatsApp group (text or voice, any language), e.g. <i>"need 200 bags cement at Demo Villas by 15 Dec"</i>. A new flow starts here within a second.</div>';$('log').innerHTML='';return}
+ if(j.case_id!==cur){cur=j.case_id;seen=new Set();sig=''}
+ $('bubble').innerHTML=`<b>#${j.case_id}</b> “${esc(j.raw)}”`;
+ $('age').textContent=j.age<60?'updated just now':'last activity '+Math.round(j.age/60)+' min ago';
  $('status').innerHTML=`<span class="dot ${j.waiting?'wait':(j.state!=='DECIDED'?'live':'')}"></span><span>${esc(j.label)}${j.waiting?' · waiting for '+esc(j.waiting.replace('engineer','the requester').replace('hod','the admins')):''}</span>`;
- const s=JSON.stringify([j.steps.map(x=>x.status+x.summary),j.vendors]);if(s!==sig){sig=s;paint(j)}now(j);chat(j);
+ const s=JSON.stringify([j.steps.map(x=>x.status+x.sub),j.vendors]);if(s!==sig){sig=s;paint(j)}now(j);chat(j);
  $('log').innerHTML=j.error?'<div class="no">Problem: '+esc(j.error)+'</div>':'<b>Agent log</b>'+j.events.map(e=>`<div>${e.ts} · ${esc(e.actor)} · ${esc(e.text)}</div>`).join('')}
-async function tick(){try{render(await (await fetch('/api/flow')).json())}catch(e){}}
-async function flows(){try{const l=await (await fetch('/api/cases')).json();$('flows').innerHTML=l.slice(0,5).map((c,i)=>`<div class="fl ${i?'':'on'}"><b>#${c.id}</b> ${esc(c.raw)}<i style="width:${Math.max(6,c.pct)}%"></i></div>`).join('')}catch(e){}}
+async function tick(){try{render(await (await fetch('/api/flow'+location.search)).json())}catch(e){}}
+async function flows(){try{const l=await (await fetch('/api/cases')).json();$('flows').innerHTML=l.length>1?l.slice(0,5).map(c=>`<div class="fl ${c.id===cur?'on':''}"><b>#${c.id}</b> ${esc(trunc(c.raw,38))}<div class="sm" style="font-size:11px">${esc(c.label)}</div><i style="width:${Math.max(6,c.pct)}%"></i></div>`).join(''):''}catch(e){}}
 setInterval(tick,1000);setInterval(flows,3000);tick();flows();
 </script>{% endblock %}

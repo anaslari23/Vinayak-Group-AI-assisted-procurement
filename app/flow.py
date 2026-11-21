@@ -16,8 +16,22 @@ def _ev(cid):
 def _ck(ok, text, **kw): return {"ok": ok, "text": text, **kw}
 
 
+ACTIVE_MIN = 30  # a case with no event for this long is history, not "live"
+
+
+def ages():
+    """Seconds since each case's last event (same process clock that wrote the events)."""
+    from datetime import datetime
+    c = db.con(); rows = c.execute("select case_id, max(ts) t from events group by case_id").fetchall(); c.close(); out = {}
+    for r in rows:
+        try: out[r["case_id"]] = (datetime.now() - datetime.fromisoformat(r["t"].replace(" ", "T"))).total_seconds()
+        except Exception: pass
+    return out
+
+
 def latest_case():
-    c = db.con(); r = c.execute("select id from cases order by id desc limit 1").fetchone(); c.close(); return r["id"] if r else None
+    a = {k: v for k, v in ages().items() if v < ACTIVE_MIN * 60}
+    return max(a) if a else None
 
 
 def build(cid):
@@ -97,6 +111,30 @@ def build(cid):
         if e["kind"] == "stock" and "Transfer request" not in e["text"]: continue
         s["checks"].append(_ck(True, e["text"][:200]))
 
+    # stock: re-run the deterministic check so the panel shows the real holdings per site
+    if not boq and parsed and cur >= 3:
+        try:
+            from . import stock as stockmod
+            chk = stockmod.check_request(parsed, d.get("raw", ""))
+            if chk.get("checked"):
+                u = chk["material"]["unit"]; steps["stock"]["data"] = {"kv": [("Material", chk["material"]["name"]), ("Needed", f"{chk['need'] or '?'} {chk['uom'] or ''}"), ("Site", chk["site"])],
+                    "table": {"head": ["Site", f"Free ({u})"], "rows": [[chk["site"] or "this site", f"{chk['here']:,.0f}"]] + [[k, f"{v:,.0f}"] for k, v in chk["others"].items()]}}
+                steps["stock"]["sub"] = f"{chk['here']:,.0f} here · {sum(chk['others'].values()):,.0f} elsewhere"
+        except Exception: pass
+
+    # the short line on each node: always from this case's data, never a fixed caption
+    q = parsed.get("quantity"); qty = f"{q:g} {parsed.get('uom') or ''}".strip() if isinstance(q, (int, float)) else (str(q) if q else ("BOQ on file" if boq else ""))
+    sub = {"capture": " · ".join(x for x in [" ".join((parsed.get("item_description") or "").split()[:2])[:14], qty] if x) if parsed else "reading…",
+           "clarify": "confirmed" if conf else (f"asked {len(asked)}" if asked else ("nothing missing" if cur > 1 else "")),
+           "item": str(d.get("item_code") or ""), "rfq": f"{len(rf)} vendors asked" if rf else "",
+           "quotes": f"{len(rows)} of {len(rf) or len(rows)} replied" if rows else (f"0 of {len(rf)} replied" if rf else ""),
+           "compare": (steps["compare"]["summary"].replace("Top: ", "")[:22]) if steps["compare"]["summary"] else "",
+           "hod": ("waiting" if c["waiting"] == "hod" else (acts[-1]["text"].split(": ", 1)[-1][:22] if acts else "")) if cur >= 7 else "",
+           "outcome": "closed" if state == "DECIDED" else ("in work" if state in ("IN_WORK", "CHECKIN") else "")}
+    if steps["stock"]["status"] == "skipped": sub["stock"] = "not needed (BOQ)"
+    for k, v in sub.items(): steps[k].setdefault("sub", v) if v else None
+    for k in steps: steps[k].setdefault("sub", "")
+
     # statuses
     keys = [k for k, _ in STEPS]
     for i, k in enumerate(keys):
@@ -132,4 +170,4 @@ def build(cid):
             chat.append({"who": "demo", "text": e["text"][:200], "ts": e["ts"][11:16]})
     err = [e for e in ev if e["kind"] == "error"]
     return {"case_id": cid, "state": state, "label": engine.STATE_TEXT.get(state, state), "waiting": c["waiting"], "raw": d.get("raw", ""), "channel": d.get("channel", ""), "error": err[-1]["text"] if err else None,
-            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "chat": chat[-14:], "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"]}
+            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "chat": chat[-14:], "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"], "age": round(ages().get(cid, 0))}

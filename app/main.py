@@ -844,8 +844,10 @@ def api_flow(case: int | None = None):
 @app.get("/api/cases")
 def api_cases():
     c = db.con(); rows = [dict(r) for r in c.execute("select id, state, data from cases order by id desc limit 12")]; c.close()
-    from .flow import ORDER
-    return [{"id": r["id"], "state": r["state"], "pct": round(100 * min(ORDER.get(r["state"], 0), 9) / 9), "raw": (json.loads(r["data"] or "{}").get("raw", ""))[:60]} for r in rows]
+    from .flow import ORDER, ACTIVE_MIN, ages
+    a = ages()  # only flows with recent activity; old cases stay on the Cases page
+    return [{"id": r["id"], "state": r["state"], "label": engine.STATE_TEXT.get(r["state"], r["state"]), "pct": round(100 * min(ORDER.get(r["state"], 0), 9) / 9), "raw": (json.loads(r["data"] or "{}").get("raw", ""))[:60], "age": round(a.get(r["id"], 9e9))}
+            for r in rows if a.get(r["id"], 9e9) < ACTIVE_MIN * 60]
 
 
 @app.post("/api/send")
