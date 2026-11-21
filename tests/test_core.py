@@ -23,4 +23,5 @@ def test_repriced_at_tender_qty_and_gst_assumed():
          "lines": [{"sl": i, "unit": "SQFT" if i != 3 else "RMT", "quantity": 99999, "rate": 10, "rate_confidence": "high"} for i in range(1, 8)]}
     n = normalise(q)
     assert n["qty_mismatch"] and n["gst_assumed"]
-    assert abs(n["base_ex_gst"] - 10 * (13429.53 + 11558.76 + 500 + 1802.48 + 1920.32 + 8741.32 + 2443.59)) < 0.01
+    from app.tender import TENDER
+    assert abs(n["base_ex_gst"] - 10 * sum(l["qty"] for l in TENDER["lines"])) < 0.01
