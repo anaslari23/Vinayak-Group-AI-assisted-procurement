@@ -21,7 +21,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-NAV = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("W", "WhatsApp", "/whatsapp"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
+NAV = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("K", "Live voice", "/livekit"), ("W", "WhatsApp", "/whatsapp"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
 STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
@@ -800,3 +800,29 @@ def wa_page(request: Request):
     msgs = [dict(r) for r in c.execute("select * from wa_messages order by id desc limit 25")]
     cases = [dict(r) for r in c.execute("select w.*, c.state, c.waiting from wa_cases w join cases c on c.id=w.case_id order by w.case_id desc limit 10")]; c.close()
     return page(request, "whatsapp.html", "W", st=wa.STATUS, groups=groups, msgs=msgs, cases=cases)
+
+
+
+# ---- LiveKit: real-time voice. The worker in /livekit_agent does the audio (Sarvam speech in and out); this is its brain and the browser page's token.
+@app.post("/livekit/turn")
+async def livekit_turn(request: Request):
+    if not _bridge_ok(request): return JSONResponse({"error": "forbidden"}, 403)
+    p = await request.json()
+    r = await asyncio.to_thread(callmod.turn_text, p["session"], p.get("text", ""), p.get("lang") or "en-IN")
+    return {"reply": r["reply"], "lang": r["lang"], "done": r["done"], "case_id": r["case_id"]}
+
+
+@app.get("/livekit/token")
+def livekit_token(request: Request):
+    import jwt, time, uuid
+    key, sec, url = os.getenv("LIVEKIT_API_KEY"), os.getenv("LIVEKIT_API_SECRET"), os.getenv("LIVEKIT_URL")
+    if not (key and sec and url): return JSONResponse({"error": "LiveKit is not configured (LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET)."}, 400)
+    room = "call-" + uuid.uuid4().hex[:8]; ident = "caller-" + uuid.uuid4().hex[:6]
+    tok = jwt.encode({"iss": key, "sub": ident, "name": "Site engineer", "nbf": int(time.time()) - 5, "exp": int(time.time()) + 3600,
+                      "video": {"room": room, "roomJoin": True, "canPublish": True, "canSubscribe": True, "canPublishData": True}}, sec, algorithm="HS256")
+    return {"token": tok, "url": url, "room": room}
+
+
+@app.get("/livekit", response_class=HTMLResponse)
+def livekit_page(request: Request):
+    return page(request, "livekit.html", "K", configured=bool(os.getenv("LIVEKIT_API_KEY") and os.getenv("LIVEKIT_URL")))

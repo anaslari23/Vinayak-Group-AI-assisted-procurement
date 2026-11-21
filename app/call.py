@@ -33,12 +33,21 @@ def _closing(case):
 
 def turn(call_id: str | None, audio: bytes, filename: str = "voice.webm") -> dict:
     text, lang = voice.stt(audio, filename)
+    return _turn(call_id, text, lang, speak=True)
+
+
+def turn_text(call_id: str, text: str, lang: str = "en-IN") -> dict:
+    """The same agent turn for a caller whose speech was already transcribed (LiveKit does speech in and out itself): text in, localized text out."""
+    return _turn(call_id, text, lang, speak=False)
+
+
+def _turn(call_id, text, lang, speak):
     s = SESS.setdefault(call_id or uuid.uuid4().hex[:10], {"case": None, "last": 0, "lang": lang, "log": []})
     cid_key = next(k for k, v in SESS.items() if v is s)
     s["lang"] = lang
     if not text:
         reply_en = "Sorry, I could not hear that. Please say it again."
-        return _speak(cid_key, s, "", lang, reply_en, False)
+        return _speak(cid_key, s, "", lang, reply_en, False, speak)
     s["log"].append(("you", text, lang))
     cid = engine.engineer_inbound(text, "call (voice)", s["case"])
     s["case"] = cid
@@ -47,11 +56,11 @@ def turn(call_id: str | None, audio: bytes, filename: str = "voice.webm") -> dic
     reply_en = " ".join(m["text"] for m in msgs)
     if done:
         reply_en = (reply_en + " " + _closing(case)).strip()
-    return _speak(cid_key, s, text, lang, reply_en or "Okay.", done)
+    return _speak(cid_key, s, text, lang, reply_en or "Okay.", done, speak)
 
 
-def _speak(call_id, s, heard, lang, reply_en, done):
-    local = localize(reply_en, lang) if lang != "en-IN" else localize(reply_en, "en-IN")
-    wav = voice.tts(local, lang)
+def _speak(call_id, s, heard, lang, reply_en, done, speak=True):
+    local = localize(reply_en, lang)
+    wav = voice.tts(local, lang) if speak else b""
     s["log"].append(("agent", local, lang))
     return {"call_id": call_id, "case_id": s["case"], "heard": heard, "lang": lang, "lang_name": voice.LANGS.get(lang, lang), "reply_en": reply_en, "reply": local, "wav": wav, "done": done}

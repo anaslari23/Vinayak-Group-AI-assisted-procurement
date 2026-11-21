@@ -75,3 +75,16 @@ def test_whatsapp_style_cement_request_uses_the_material_catalogue_and_checks_st
     c = engine._case(cid); assert c["data"]["item_code"] == "MAT.CEM.01" and c["state"] == "STOCK_REVIEW" and c["waiting"] == "hod"   # no 'code pending' question
     msg = db.con().execute("select text from chat_messages where case_id=? and to_role='hod'", (cid,)).fetchone()["text"]
     assert "Demo Heights" in msg and "transfer" in msg.lower()
+
+
+def test_livekit_turn_endpoint_and_token(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import main, call
+    monkeypatch.setenv("WA_BRIDGE_KEY", "k"); monkeypatch.setenv("LIVEKIT_API_KEY", "APIkey"); monkeypatch.setenv("LIVEKIT_API_SECRET", "s" * 40); monkeypatch.setenv("LIVEKIT_URL", "wss://x.livekit.cloud")
+    monkeypatch.setattr(call, "turn_text", lambda sid, text, lang: {"reply": "ठीक है", "lang": "hi-IN", "done": False, "case_id": 1})
+    c = TestClient(main.app)
+    assert c.post("/livekit/turn", json={"session": "a", "text": "hi"}).status_code == 403                                  # needs the shared key
+    r = c.post("/livekit/turn", json={"session": "a", "text": "hi", "lang": "hi-IN"}, headers={"x-bridge-key": "k"}); assert r.json()["reply"] == "ठीक है"
+    import jwt
+    t = c.get("/livekit/token").json(); claims = jwt.decode(t["token"], "s" * 40, algorithms=["HS256"])
+    assert claims["iss"] == "APIkey" and claims["video"]["roomJoin"] and claims["video"]["room"] == t["room"] and t["url"].startswith("wss://")

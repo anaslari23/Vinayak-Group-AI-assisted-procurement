@@ -11,3 +11,4 @@ vonage_private.key
 *.key
 whatsapp/auth/
 whatsapp/node_modules/
+livekit_agent/.venv/

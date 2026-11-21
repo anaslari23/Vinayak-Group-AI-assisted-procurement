@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block body %}
+<h1>Live voice call</h1>
+<p class="sub">A real-time voice conversation with the agent (LiveKit). Speak naturally in any Indian language: it answers straight away, in your language, and reads the requirement back before anything proceeds. Use headphones.</p>
+{% if not configured %}<div class="banner">LiveKit is not configured on this server yet (it needs LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET).</div>{% endif %}
+<div class="card" style="text-align:center">
+<div id="orb" style="width:96px;height:96px;border-radius:50%;margin:8px auto;background:#e7e2db;display:flex;align-items:center;justify-content:center;font-size:40px;transition:all .15s">📞</div>
+<button id="go" style="font-size:18px;padding:14px 30px">📞 Start call</button>
+<button id="stop" class="sec" style="font-size:18px;padding:14px 30px;display:none">End call</button>
+<p class="mut" id="state" style="margin-top:10px">Tap Start and allow the microphone. The agent greets you; just talk.</p></div>
+<div id="log" class="card" style="min-height:90px"></div>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);let room;
+function add(who,t){const d=document.createElement('div');d.style.cssText='margin:6px 0;padding:8px 10px;border-radius:8px;text-align:left;background:'+(who==='you'?'#d9fdd3':'#f4efe7');d.textContent=(who==='you'?'You: ':'Agent: ')+t;$('log').appendChild(d);}
+function status(t,c){$('state').textContent=t;$('orb').style.background=c||'#e7e2db';}
+$('go').onclick=async()=>{
+ status('Connecting…','#fde68a');
+ const r=await fetch('/livekit/token');const j=await r.json();if(j.error){status(j.error);return;}
+ room=new LivekitClient.Room({adaptiveStream:true});
+ room.on(LivekitClient.RoomEvent.TrackSubscribed,(track)=>{if(track.kind==='audio'){const el=track.attach();el.autoplay=true;document.body.appendChild(el);}});
+ room.on(LivekitClient.RoomEvent.TranscriptionReceived,(segs,p)=>{segs.filter(s=>s.final).forEach(s=>add(p&&p.identity&&p.identity.startsWith('caller')?'you':'agent',s.text));});
+ room.on(LivekitClient.RoomEvent.ActiveSpeakersChanged,sp=>{const agent=sp.some(x=>!x.identity.startsWith('caller'));const me=sp.some(x=>x.identity.startsWith('caller'));$('orb').style.transform=(agent||me)?'scale(1.15)':'scale(1)';status(agent?'Agent speaking…':(me?'Listening…':'Your turn'),agent?'#c7d2fe':'#d9fdd3');});
+ room.on(LivekitClient.RoomEvent.Disconnected,()=>{status('Call ended.');$('go').style.display='';$('stop').style.display='none';});
+ await room.connect(j.url,j.token);await room.localParticipant.setMicrophoneEnabled(true);
+ $('go').style.display='none';$('stop').style.display='';status('Connected: waiting for the agent to greet you…','#d9fdd3');};
+$('stop').onclick=()=>room&&room.disconnect();
+</script>{% endblock %}
