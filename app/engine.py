@@ -33,13 +33,17 @@ def _save(cid, state=None, waiting="__keep__", data=None):
     c.execute("update cases set updated=CURRENT_TIMESTAMP where id=?", (cid,)); c.commit(); c.close()
 
 
+def _ts():
+    return datetime.now().isoformat(timespec="milliseconds")
+
+
 def log(cid, actor, kind, text, payload=None):
-    c = db.con(); c.execute("insert into events(case_id,actor,kind,text,payload) values(?,?,?,?,?)", (cid, actor, kind, text, json.dumps(payload) if payload else None)); c.commit(); c.close()
+    c = db.con(); c.execute("insert into events(case_id,actor,kind,text,payload,ts) values(?,?,?,?,?,?)", (cid, actor, kind, text, json.dumps(payload) if payload else None, _ts())); c.commit(); c.close()
 
 
 def say(cid, to, text, buttons=None):
     """Queue a chat message for the engineer or the HOD. Front doors (simulator, Telegram) deliver it."""
-    c = db.con(); c.execute("insert into chat_messages(case_id,to_role,text,buttons) values(?,?,?,?)", (cid, to, text, json.dumps(buttons) if buttons else None)); c.commit(); c.close()
+    c = db.con(); c.execute("insert into chat_messages(case_id,to_role,text,buttons,ts) values(?,?,?,?,?)", (cid, to, text, json.dumps(buttons) if buttons else None, _ts())); c.commit(); c.close()
     log(cid, "agent", "message", f"→ {to}: {text}")
 
 
@@ -255,3 +259,20 @@ def timeline(cid):
     ch = [dict(r) for r in c.execute("select * from chat_messages where case_id=? order by id", (cid,))]; c.close()
     for m in ch: m["buttons"] = json.loads(m["buttons"]) if m["buttons"] else []
     return ev, ch
+
+
+def engineer_inbound(text: str, channel="web", cid=None) -> int:
+    """One entry point for every front door. A reply to an open question continues that case; anything else opens a new case."""
+    if cid:
+        c = _case(cid)
+        if c["state"] == "CLARIFY" and c["data"].get("asked_open"):
+            on_engineer_message(cid, text); return cid
+    cid = new_case(text, channel); advance(cid); return cid
+
+
+def conversation(cid, role):
+    """Chat bubbles for one person in a case, oldest first: what the agent told them and what they said."""
+    c = db.con()
+    out = [{"who": "agent", "text": m["text"], "buttons": json.loads(m["buttons"]) if m["buttons"] else [], "ts": m["ts"]} for m in c.execute("select * from chat_messages where case_id=? and to_role=?", (cid, role))]
+    out += [{"who": "me", "text": e["text"], "buttons": [], "ts": e["ts"]} for e in c.execute("select * from events where case_id=? and actor=? and kind in ('received','action')", (cid, role))]
+    c.close(); return sorted(out, key=lambda x: x["ts"])

@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block body %}
+<h1>The agent on two phones</h1>
+<p class="sub">Left: a site engineer. Right: the HOD. This is the same conversation that the Telegram bot carries. Type, or hold the mic and speak (voice notes go through Sarvam speech-to-text). {% if cid %}Showing case #{{cid}}.{% endif %}</p>
+<p class="mut" style="text-align:center" id="status"></p>
+<div class="phones">
+<div class="phone"><div class="pbar">Site engineer · Vinayak Amara</div><div class="msgs" id="m-engineer"></div>
+<form onsubmit="sendText(event)"><input type="text" name="text" placeholder="Message the agent" autocomplete="off"><button type="button" class="mic sec" onclick="mic(this)">🎤</button><button>Send</button></form></div>
+<div class="phone"><div class="pbar">HOD · Back office</div><div class="msgs" id="m-hod"></div></div></div>
+<script>
+const CASE=null; // always follow the latest case
+async function post(url,fd){return fetch(url,{method:'POST',body:fd});}
+async function sendText(e){e.preventDefault();const i=e.target.text;const v=i.value.trim();if(!v)return;i.value='';
+ const fd=new FormData();fd.append('text',v);if(CASE)fd.append('case',CASE);await post('/sim/send',fd);setTimeout(refresh,800);}
+async function press(data){const fd=new FormData();fd.append('data',data);if(CASE)fd.append('case',CASE);await post('/sim/button',fd);}
+let rec,chunks=[];
+async function mic(btn){
+ if(rec&&rec.state==='recording'){rec.stop();btn.classList.remove('rec');btn.textContent='🎤';return;}
+ try{const s=await navigator.mediaDevices.getUserMedia({audio:true});rec=new MediaRecorder(s);chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
+ rec.onstop=async()=>{s.getTracks().forEach(t=>t.stop());const fd=new FormData();fd.append('file',new Blob(chunks,{type:rec.mimeType}),'voice.webm');if(CASE)fd.append('case',CASE);
+  btn.textContent='…';const r=await post('/sim/voice',fd);btn.textContent='🎤';if(!r.ok){alert(await r.text());}else setTimeout(refresh,800);};
+ rec.start();btn.classList.add('rec');btn.textContent='■';}catch(err){alert('Microphone not available: '+err.message);}}
+async function refresh(){const q=CASE?'&case='+CASE:'';
+ for(const role of ['engineer','hod']){const r=await fetch('/sim/fragment?role='+role+q);if(!r.ok)continue;const el=document.getElementById('m-'+role);const h=await r.text();
+  if(el.innerHTML!==h){const bottom=el.scrollHeight-el.scrollTop-el.clientHeight<40;el.innerHTML=h;if(bottom||!el.dataset.init)el.scrollTop=el.scrollHeight;el.dataset.init=1;}}
+ const st=await fetch('/sim/status'+(CASE?'?case='+CASE:''));if(st.ok)document.getElementById('status').innerHTML=await st.text();}
+refresh();setInterval(refresh,2000);
+</script>{% endblock %}

@@ -20,12 +20,14 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-STEPS = [("A", "Agent", "/cases"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
+STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
 @app.on_event("startup")
 def boot():
     db.init()
+    from . import telegram_bot
+    print("[agent]", telegram_bot.start())
     c = db.con()
     if c.execute("select count(*) from quotes").fetchone()[0] == 0 and CACHE.exists():  # cached extractions of the 4 received quotes (see README)
         for f in sorted(CACHE.glob("*.json")):
@@ -285,3 +287,63 @@ def case_sim(cid: int):
 @app.post("/cases/{cid}/fastforward")
 def case_ff(cid: int, hours: float = Form(48)):
     engine.bg(engine.advance_time, cid, hours); return RedirectResponse(f"/cases/{cid}", 303)
+
+
+# ---- phone simulator: the same agent seen from the engineer's and the HOD's phones
+from . import voice
+
+
+def _sim_case(case: int | None):
+    if case: return case
+    c = db.con(); r = c.execute("select id from cases order by id desc limit 1").fetchone(); c.close(); return r["id"] if r else None
+
+
+@app.get("/sim", response_class=HTMLResponse)
+def sim(request: Request, case: int | None = None):
+    cid = _sim_case(case)
+    return page(request, "sim.html", "P", cid=cid, **_sim_ctx(cid))
+
+
+def _sim_ctx(cid):
+    if not cid: return {"eng": [], "hod": [], "c": None, "ev": []}
+    ev, _ = engine.timeline(cid)
+    return {"eng": engine.conversation(cid, "engineer"), "hod": engine.conversation(cid, "hod"), "c": engine._case(cid), "ev": ev}
+
+
+@app.get("/sim/fragment", response_class=HTMLResponse)
+def sim_fragment(request: Request, role: str = "engineer", case: int | None = None):
+    cid = _sim_case(case); ctx = _sim_ctx(cid)
+    return T.TemplateResponse(request, "sim_fragment.html", {"cid": cid, "role": role, "msgs": ctx["eng"] if role == "engineer" else ctx["hod"], "c": ctx["c"]})
+
+
+@app.get("/sim/status", response_class=HTMLResponse)
+def sim_status(request: Request, case: int | None = None):
+    cid = _sim_case(case); c = engine._case(cid) if cid else None
+    if not c: return HTMLResponse("")
+    w = c["waiting"] or ("nobody, case closed" if c["state"] == "DECIDED" else "nobody, the agent is working")
+    return HTMLResponse(f'State: <b>{STATE_LABEL.get(c["state"], c["state"])}</b> · waiting for: <b>{w}</b> · <a href="/cases/{cid}">full timeline and demo controls</a>')
+
+
+@app.post("/sim/send")
+def sim_send(text: str = Form(...), case: int | None = Form(None)):
+    cid = _sim_case(case)
+    def run():
+        engine.engineer_inbound(text, "web", cid)
+    engine.bg(run)
+    return HTMLResponse("ok")
+
+
+@app.post("/sim/voice")
+async def sim_voice(file: UploadFile = File(...), case: int | None = Form(None)):
+    data = await file.read()
+    try:
+        text = voice.to_text(data, file.filename or "voice.webm")
+    except Exception as e:
+        return HTMLResponse(f"Could not read the voice note: {e}", 400)
+    cid = _sim_case(case); engine.bg(lambda: engine.engineer_inbound(text, "web (voice note)", cid))
+    return HTMLResponse(text)
+
+
+@app.post("/sim/button")
+def sim_button(data: str = Form(...), case: int | None = Form(None)):
+    engine.bg(engine.on_hod_action, _sim_case(case), data); return HTMLResponse("ok")

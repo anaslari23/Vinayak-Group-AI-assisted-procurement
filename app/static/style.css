@@ -15,3 +15,10 @@ pre{white-space:pre-wrap;background:#f4efe7;padding:12px;border-radius:8px;font-
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}ul.r{margin:6px 0 0 18px;padding:0}ul.r li{margin:2px 0}
 .rank{font-size:26px;font-weight:700;color:var(--acc)}.bar{height:8px;border-radius:4px;background:#e7e2db;overflow:hidden}.bar i{display:block;height:100%}
 .card{overflow-wrap:anywhere}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;justify-items:center}
+.phone{width:340px;max-width:100%;border:10px solid #1c1917;border-radius:34px;background:#efeae2;height:560px;display:flex;flex-direction:column;overflow:hidden}
+.phone .pbar{flex:none;background:#075e54;color:#fff;padding:10px 14px;font-weight:600;font-size:14px}.phone .msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+.bub{max-width:86%;padding:7px 10px;border-radius:10px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.12)}
+.bub.agent{background:#fff;align-self:flex-start}.bub.me{background:#d9fdd3;align-self:flex-end}.bub .t{font-size:10px;color:#667781;text-align:right}
+.bub button{display:block;width:100%;margin-top:5px;padding:6px;font-size:12px}.phone form{display:flex;gap:4px;padding:6px;background:#f0f2f5}.phone form input{flex:1;border-radius:99px}
+.phone form button{border-radius:99px;padding:6px 12px}.mic.rec{background:#b91c1c}

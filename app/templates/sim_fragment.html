@@ -1,0 +1,2 @@
+{% for m in msgs %}<div class="bub {{m.who}}">{{m.text}}{% if m.buttons and c and c.waiting==role %}{% for b in m.buttons %}<button onclick="press('{{b.data}}')" class="{{'' if loop.first else 'sec'}}">{{b.label}}</button>{% endfor %}{% endif %}<div class="t">{{m.ts[11:16]}}</div></div>
+{% else %}<p class="mut" style="text-align:center;margin-top:40px">{{'Send a requirement to start.' if role=='engineer' else 'Nothing needs the HOD yet.'}}</p>{% endfor %}
