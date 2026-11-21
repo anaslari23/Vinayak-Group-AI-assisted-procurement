@@ -1,0 +1,9 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+data/private/
+data/app.db
+data/inbox/
+.env
+vinayak-vch3-data*
