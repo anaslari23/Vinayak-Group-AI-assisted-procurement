@@ -35,8 +35,8 @@ def test_agent_notices_a_requirement_without_being_asked_and_replies_in_the_grou
     r = wa.inbound(msg(3, "need 500 sqft toilet floor waterproofing at Aquina by 10 Dec"))
     assert r["handled"] == "noticed a requirement"
     c = rows("select * from cases")[0]; assert c["state"] != "NEW" and "whatsapp" in json.loads(c["data"])["channel"]
-    out = wa.outbox(); assert out and all(o["jid"] == "grp@g.us" for o in out)
-    assert any(o["mentions"] == ["9222@s.whatsapp.net"] and "@9222" in o["text"] for o in out)                   # the admins are tagged, in the group
+    out = wa.outbox(); assert out and any(o["jid"] == "grp@g.us" for o in out) and all(o["jid"] in ("grp@g.us", "9222@s.whatsapp.net") for o in out)
+    assert any(o["jid"] == "9222@s.whatsapp.net" and "[case #1]" in o["text"] for o in out)   # the admin gets the recommendation privately
     wa.ack([o["id"] for o in out]); assert wa.outbox() == []
 
 
@@ -86,3 +86,12 @@ def test_a_news_forward_or_greeting_addressed_to_the_agent_gets_a_polite_reply_n
     r = wa.inbound({**msg(40, "JUST IN: Indian stock markets surged to nine-month highs today"), "is_group": False})        # a direct message counts as addressed
     assert r["handled"] == "not a requirement" and not rows("select * from cases")
     assert any("I handle procurement" in o["text"] for o in wa.outbox())
+
+
+def test_admin_decides_by_private_message():
+    wa.inbound(msg(30, "need 200 bags cement at Demo Villas by 15 Dec"))
+    wa.outbox()
+    cid = rows("select case_id from wa_cases")[0]["case_id"]
+    assert rows("select waiting from cases where id=?", cid)[0]["waiting"] == "hod"
+    r = wa.inbound(msg(31, "1", sender="9222@s.whatsapp.net", is_group=False, jid="9222@s.whatsapp.net"))
+    assert r["handled"] == "hod decision (private)"

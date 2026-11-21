@@ -97,6 +97,10 @@ def inbound(p: dict) -> dict:
 def own_waiting(jid, sender): return next((x for x in _cases_for(jid, sender) if x["waiting"] == "engineer"), None)
 
 
+def _all_hod_waiting():
+    c = db.con(); r = [dict(x) for x in c.execute("select w.* from wa_cases w join cases c on c.id=w.case_id where c.waiting='hod' order by w.case_id desc")]; c.close(); return r
+
+
 def _route(p, jid, sender, name, body, addressed, kind, lang):
     admins = ADMINS.get(jid, []); is_admin = (not p.get("is_group")) or any(num(a) == num(sender) or num(a) == num(p.get("sender_alt", "x")) for a in admins) or os.getenv("WA_HOD_NUMBERS", "").find(num(sender)) >= 0
     mine = _cases_for(jid)
@@ -106,6 +110,12 @@ def _route(p, jid, sender, name, body, addressed, kind, lang):
         b = _hod_buttons(pend["case_id"]); opt = pick_option(body, b) if b else None
         if opt:
             engine.bg(engine.on_hod_action, pend["case_id"], opt["data"]); _queue(jid, f"Recorded for case #{pend['case_id']}: {opt['label']}.", [sender]); return "hod decision"
+    if not p.get("is_group"):                                                          # an admin answering the agent's private message
+        for w in _all_hod_waiting():
+            if any(num(a) == num(sender) or num(a) == num(p.get("sender_alt", "x")) for a in ADMINS.get(w["jid"], [])):
+                b = _hod_buttons(w["case_id"]); opt = pick_option(body, b) if b else None
+                if opt:
+                    engine.bg(engine.on_hod_action, w["case_id"], opt["data"]); _queue(jid, f"Recorded for case #{w['case_id']}: {opt['label']}.", []); _queue(w["jid"], f"Case #{w['case_id']}: the admin has decided ({opt['label']}).", []); return "hod decision (private)"
     # 2. addressed commands to the agent: help / status / a requirement or a question
     low = body.lower().strip()
     if addressed and low in ("help", "?", "hi", "hello"):
@@ -155,8 +165,13 @@ def flush_cases():
         if m["to_role"] == "hod":
             mine = {num(STATUS.get("me") or ""), num(STATUS.get("lid") or "")} - {""}
             adm = [a for a in ADMINS.get(m["jid"], []) if num(a) not in mine]
-            mentions = [a for a in adm if a.endswith("@s.whatsapp.net")] or adm       # one tag per person: phone ids, never the bot itself
-            text = " ".join("@" + num(a) for a in mentions) + (" " if mentions else "") + f"[case #{m['case_id']}] " + text
+            adm = [a for a in adm if a.endswith("@s.whatsapp.net")] or adm
+            body = f"[case #{m['case_id']}] " + text + (("\n" + "\n".join(f"{i}. {b['label']}" for i, b in enumerate(json.loads(m["buttons"]), 1)) + "\nReply with the number.") if m["buttons"] else "")
+            if adm:                                                                     # the HOD is a different person from the site engineer: private message, the group only gets a notice
+                for a in adm: c.execute("insert into wa_out(jid,text,mentions,ogg_b64) values(?,?,?,?)", (a, "Procurement agent: " + body, "[]", None))
+                text, mentions, m["buttons"] = f"Case #{m['case_id']}: the recommendation has gone to the admins privately for their decision.", [], None
+            else:
+                mentions = adm; text = f"[case #{m['case_id']}] " + text
         else:
             mentions = [m["sender"]]; text = "@" + num(m["sender"]) + " " + text
         if m["buttons"]:
