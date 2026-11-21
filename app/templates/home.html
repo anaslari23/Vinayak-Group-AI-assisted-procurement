@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block body %}
+<h1>From site requirement to vendor comparative</h1>
+<p class="sub">{{tender.project}} · {{tender.package}}. The agent reads messy quotes, puts them on a like-for-like landed cost, ranks vendors with reasons, and asks the HOD. It never selects, orders or pays.</p>
+<div class="grid">
+<div class="card"><b>1-2 · Capture and item code</b><p class="mut">Form, WhatsApp text or voice note, matched to ERP item codes with duplicate flags.</p><a class="btn" href="/requirement">Open</a> <span class="mut">{{n.requirements}} saved</span></div>
+<div class="card"><b>3 · RFQ</b><p class="mut">Draft RFQs and send to test inboxes only (hard allowlist).</p><a class="btn" href="/rfq">Open</a> <span class="mut">{{n.mail_log}} mails logged</span></div>
+<div class="card"><b>4 · Read quotes</b><p class="mut">PDF, scan or Excel to normalised rates, GST, payment terms, validity.</p><a class="btn" href="/quotes">Open</a> <span class="mut">{{n.quotes}} quotes</span></div>
+<div class="card"><b>5 · Comparative statement</b><p class="mut">Landed cost at the tender quantities, ranked on price, history and terms.</p><a class="btn" href="/compare">Open</a></div>
+<div class="card"><b>6 · HOD approval</b><p class="mut">Recommendation with reasons, signed approve / reject link.</p><a class="btn" href="/hod">Open</a> <span class="mut">{{n.decisions}} decisions</span></div>
+</div>{% endblock %}

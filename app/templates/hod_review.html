@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block body %}
+<h1>HOD review</h1><p class="sub">Recommendation only. Your decision is recorded as a note; no order or payment is created.</p>
+<table><tr><th>Rank</th><th>Vendor</th><th>Landed (Rs)</th><th>Score</th><th>Key reasons</th></tr>
+{% for r in rows %}<tr class="{{'best' if r.n.vendor==d.v}}"><td>{{r.rank}}</td><td><b>{{r.n.vendor}}</b>{% if r.n.vendor==d.v %} <span class="pill ok">recommended</span>{% endif %}</td><td class="n">{{r.n.landed|inr}}</td><td class="n">{{r.total|round(1)}}</td><td><ul class="r">{% for x in r.reasons[:4] %}<li>{{x}}</li>{% endfor %}</ul></td></tr>{% endfor %}</table>
+<form method="post" class="card"><p>Recommended: <b>{{d.v}}</b></p><textarea name="note" rows="2" placeholder="Note (optional)"></textarea>
+<p><button name="decision" value="approve">Approve the recommendation</button> <button class="sec" name="decision" value="send back">Send back for re-quote</button> <button class="sec" name="decision" value="reject">Reject</button></p></form>{% endblock %}

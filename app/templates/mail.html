@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block body %}<h1>Test mail log</h1><p class="sub">Everything the agent "sent". All recipients are on the test allowlist.</p>
+{% for l in log %}<div class="card"><b>{{l.kind|upper}} → {{l.to_addr}}</b> <span class="pill">{{l.status}}</span> <span class="mut">{{l.created}}</span><br>{{l.subject}}<details><summary class="mut">body</summary><pre>{{l.body}}</pre></details></div>{% else %}<p class="mut">Nothing sent yet.</p>{% endfor %}{% endblock %}

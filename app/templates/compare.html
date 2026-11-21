@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block body %}
+<h1>5 · Comparative statement and ranking</h1>
+<p class="sub">Landed cost at tender quantities = base + GST + modelled cost of payment terms. Score = price {{w.price|round|int}} + vendor history {{w.performance|round|int}} + terms and risk {{w.terms|round|int}}. All arithmetic, no AI in the ranking.</p>
+<div class="banner"><b>Vendor history is SYNTHETIC demo data.</b> Vinayak records no performance history today; this shows how it would be captured and scored. Vendors with no record get a neutral half-score and are marked unverified.</div>
+<form class="card" method="get">Weights: price <input type="number" name="price" value="{{w.price|round|int}}" style="width:64px"> history <input type="number" name="performance" value="{{w.performance|round|int}}" style="width:64px"> terms <input type="number" name="terms" value="{{w.terms|round|int}}" style="width:64px"> <button class="sec">Re-rank</button> <a class="btn" href="/compare.xlsx?price={{w.price}}&performance={{w.performance}}&terms={{w.terms}}">Download Excel (ASSUMED Farvision layout)</a></form>
+<div class="card"><b>Summary for the HOD</b> <span class="pill">{{how}}</span><p>{{summ}}</p></div>
+<table><tr><th>Rank</th><th>Vendor</th><th>Landed cost (Rs)</th><th>vs lowest</th><th>Price</th><th>History</th><th>Terms</th><th>Score</th><th>Price-only rank</th><th>Rank if history ignored</th></tr>
+{% for r in rows %}<tr class="{{'best' if r.rank==1}}"><td class="rank">{{r.rank}}</td><td><b>{{r.n.vendor}}</b></td><td class="n">{{r.n.landed|inr}}</td><td class="n">{{'+%.0f%%'|format(r.vs_lowest_pct) if r.vs_lowest_pct>0.5 else 'lowest'}}</td>
+<td class="n">{{r.price_pts|round(1)}}</td><td class="n">{{r.perf_pts|round(1)}}</td><td class="n">{{r.terms_pts|round(1)}}</td><td class="n"><b>{{r.total|round(1)}}</b></td><td class="n">{{r.price_rank}}</td><td class="n">{{r.rank_no_hist}}</td></tr>{% endfor %}</table>
+<h2>Why each vendor ranks where it does</h2><div class="grid">
+{% for r in rows %}<div class="card"><b>#{{r.rank}} {{r.n.vendor}}</b><ul class="r">{% for x in r.reasons %}<li>{{x}}</li>{% endfor %}</ul>
+<details><summary class="mut">Terms and risk points</summary><ul class="r">{% for n,got,mx in r.terms_parts %}<li>{{n}}: {{got}} / {{mx}}</li>{% endfor %}</ul></details></div>{% endfor %}</div>
+<h2>Landed cost build-up</h2><table><tr><th></th>{% for r in rows %}<th>{{r.n.vendor}}</th>{% endfor %}</tr>
+<tr><td>Base ex-GST</td>{% for r in rows %}<td class="n">{{r.n.base_ex_gst|inr}}</td>{% endfor %}</tr><tr><td>GST</td>{% for r in rows %}<td class="n">{{r.n.gst|inr}}</td>{% endfor %}</tr>
+<tr><td>Advance financing (modelled)</td>{% for r in rows %}<td class="n">{{r.n.advance_cost|inr}}</td>{% endfor %}</tr><tr><td>Faster-than-30-day payment (modelled)</td>{% for r in rows %}<td class="n">{{r.n.float_cost|inr}}</td>{% endfor %}</tr>
+<tr><th>Landed</th>{% for r in rows %}<th class="n">{{r.n.landed|inr}}</th>{% endfor %}</tr></table>
+<p class="mut">Assumptions (editable in code): cost of capital {{assump.cost_of_capital_pct}}% p.a., advance outstanding for about half of a {{assump.project_months}}-month project, 30-day baseline credit, GST {{assump.gst_default_pct}}% where unstated. Client-supplied materials are listed but not priced.</p>
+<p><a class="btn" href="/hod">Next: send to the HOD</a></p>{% endblock %}

@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block body %}<h1>Eval: quote extraction accuracy</h1>
+<p class="sub">Labels were written by hand from the 4 real quotes (so N is small). We check every field the comparison depends on: dates, validity, GST, advance, credit days, warranty, and unit, quantity and rate for all 7 items.</p>
+<div class="card"><div class="rank">{{(res.acc*100)|round(1)}}%</div> field-level accuracy: {{res.correct}} of {{res.fields}} fields correct.<br>
+Independent landed-base check: {{res.base_ok}} of {{res.base_n}} vendor totals match a hand calculation to within Rs 2.</div>
+{% if res.misses %}<h2>Misses</h2><ul>{% for m in res.misses %}<li>{{m}}</li>{% endfor %}</ul>{% endif %}{% endblock %}

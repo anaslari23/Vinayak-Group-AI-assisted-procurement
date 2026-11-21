@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block body %}
+<h1>4 · Vendor quotes, read and normalised</h1>
+<p class="sub">Four vendors, four layouts (clean PDF, letterhead PDF, a handwritten scan, a vendor with no payment terms). Claude reads each file; code then re-prices everything at the <b>tender</b> quantities and units. Rates in the table are Rs per tender unit.</p>
+<form method="post" action="/quotes/upload" enctype="multipart/form-data" class="card"><b>Add a quote</b> (PDF, image or Excel): <input type="file" name="file" style="width:auto"> <button>Read it</button></form>
+<table><tr><th>Item (tender)</th><th>Tender qty</th>{% for r in rows %}<th>{{r.n.vendor}}</th>{% endfor %}</tr>
+{% for tl in tender.lines %}<tr><td>{{tl.sl}}. {{tl.title}}</td><td class="n">{{tl.qty|inr2}} {{tl.unit}}</td>
+{% for r in rows %}{% set l=r.n.lines[loop.index0 if false else tl.sl-1] %}<td class="n">{{l.rate|inr2}}{% if l.flags %}<div class="mut" style="text-align:left;font-size:12px">{% for f in l.flags %}⚑ {{f}}<br>{% endfor %}</div>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+<tr><th>Base ex-GST</th><td></td>{% for r in rows %}<td class="n">{{r.n.base_ex_gst|inr}}</td>{% endfor %}</tr>
+<tr><th>GST</th><td></td>{% for r in rows %}<td class="n">{{r.n.gst|inr}} <span class="mut">({{r.n.gst_pct|round|int}}%{{' assumed' if r.n.gst_assumed}})</span></td>{% endfor %}</tr>
+<tr><th>Payment terms</th><td></td>{% for r in rows %}<td>{% if r.n.terms_stated %}{{r.n.advance_pct|round|int}}% advance, {{r.n.credit_days}} days{% else %}<span class="warn">not stated</span>{% endif %}</td>{% endfor %}</tr>
+<tr><th>Quote age / validity</th><td></td>{% for r in rows %}<td>{{r.n.quote_age_days if r.n.quote_age_days is not none else 'no date'}} d / {{r.n.validity_days or 'none stated'}}{% if r.n.expired %} <span class="bad">expired</span>{% endif %}</td>{% endfor %}</tr>
+<tr><th>Warranty</th><td></td>{% for r in rows %}<td>{{(r.n.warranty_years|string ~ ' yrs') if r.n.warranty_years else 'not stated'}}</td>{% endfor %}</tr>
+<tr><th>Client must supply</th><td></td>{% for r in rows %}<td>{{r.n.client_supplies|length}} items</td>{% endfor %}</tr>
+</table>
+<p class="mut">⚑ marks something the agent had to interpret. Nothing is hidden: unit conversions, re-pricing and low-confidence handwriting are all flagged.</p>
+{% endblock %}

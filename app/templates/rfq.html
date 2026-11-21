@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block body %}
+<h1>3 · RFQ to the right vendors</h1>
+<p class="sub">Vendors tagged for this category. Mail only goes to test inboxes: every recipient must be on <code>{{allowed|join(', ')}}</code>, enforced in code before sending.</p>
+<form method="post" action="/rfq/send"><div class="card"><table><tr><th></th><th>Vendor</th><th>Registered with Vinayak</th><th>Test inbox</th><th>Category source</th></tr>
+{% for v in vendors %}<tr><td><input type="checkbox" name="vendors" value="{{v.key}}" checked></td><td>{{v.name}}</td>
+<td>{% if v.registered %}<span class="ok">yes (in contractor list)</span>{% else %}<span class="warn">no, registration needed (SOP step 9)</span>{% endif %}</td><td>{{v.test_email}}</td><td class="mut">{{v.category_source}}</td></tr>{% endfor %}</table>
+<p><button>Send RFQ to test inboxes</button></p></div></form>
+<div class="card"><b>Draft</b> — {{subject}}<pre>{{body}}</pre></div>
+{% if log %}<h2>Sent</h2><table><tr><th>To</th><th>Status</th><th>When</th></tr>{% for l in log %}<tr><td>{{l.to_addr}}</td><td>{{l.status}}</td><td>{{l.created}}</td></tr>{% endfor %}</table>{% endif %}
+{% endblock %}
