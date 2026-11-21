@@ -844,7 +844,8 @@ def api_flow(case: int | None = None):
 @app.get("/api/cases")
 def api_cases():
     c = db.con(); rows = [dict(r) for r in c.execute("select id, state, data from cases order by id desc limit 12")]; c.close()
-    return [{"id": r["id"], "state": r["state"], "raw": (json.loads(r["data"] or "{}").get("raw", ""))[:70]} for r in rows]
+    from .flow import ORDER
+    return [{"id": r["id"], "state": r["state"], "pct": round(100 * min(ORDER.get(r["state"], 0), 9) / 9), "raw": (json.loads(r["data"] or "{}").get("raw", ""))[:60]} for r in rows]
 
 
 @app.post("/api/send")

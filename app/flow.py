@@ -108,6 +108,17 @@ def build(cid):
         else: st["status"] = "pending"
     if state == "DECIDED":
         steps["outcome"]["status"] = "done"
+    vend = {}
+    def vk(n): return re.sub(r"[^a-z]", "", n.lower())[:7]
+    for e in rf:
+        mm = re.match(r"RFQ to (.+?) \((.+?)\): (.+)", e["text"])
+        if mm: vend[vk(mm.group(1))] = {"name": mm.group(1)[:20], "state": "asked", "registered": mm.group(2).startswith("registered")}
+    for q in qs:
+        v = vend.get(vk(q["vendor_name"])) or vend.setdefault(vk(q["vendor_name"]), {"name": q["vendor_name"][:20], "state": "asked", "registered": True})
+        n = normalise(q); v["state"] = "replied"; v["landed"] = f"Rs {n['landed']/100000:,.1f} L"
+    for e in by("chased"):
+        for k, v in vend.items():
+            if v["name"][:8].lower() in e["text"].lower() and v["state"] == "asked": v["state"] = "chased"
     err = [e for e in ev if e["kind"] == "error"]
     return {"case_id": cid, "state": state, "label": engine.STATE_TEXT.get(state, state), "waiting": c["waiting"], "raw": d.get("raw", ""), "channel": d.get("channel", ""), "error": err[-1]["text"] if err else None,
-            "steps": [steps[k] for k in keys], "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"]}
+            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"]}
