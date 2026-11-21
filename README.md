@@ -29,7 +29,7 @@ A site engineer can **speak** a requirement in Hindi, Bengali, Tamil, Telugu, Ka
 
 - **Browser call page** at `/call` (tap to speak; works on localhost or https). Latency is about 6 to 12 seconds a turn because each turn is speech-to-text, a model call and speech-to-text back; fine for a demo, slow for a real call.
 - **Telegram:** send a voice note; the bot replies with text and a voice note in your language.
-- **A real phone number:** `/telephony/voice` and `/telephony/recording` are a Twilio-style webhook (Record, then Play the reply) onto the same agent. **It is untested**: it needs a telephony provider account and number (Indian numbers need KYC), plus a public URL. Until then the browser page and Telegram carry the voice flow.
+- **Real phone calls (not demonstrated):** webhook adapters for Twilio (`/telephony/voice`), Plivo and Vonage (the agent calling the engineer's phone) are in the code. A simulated Twilio and Plivo call and a stubbed Vonage call pass, but **no live call was completed**: Twilio's account had no credit, Plivo asked for company KYC, and Vonage's free trial rejected the outbound call as `restricted` (it needs a paid account). So the voice flow is shown through the browser call page and Telegram voice notes.
 
 ## Where it lives
 
@@ -93,7 +93,7 @@ Claude (via OpenRouter) for quote reading, requirement structuring, merging vend
 
 ## Known limitations
 
-- The phone-number webhook is untested without a provider account. Voice quality and language detection are as good as Sarvam's; heavy code-mixing or noisy sites will cause misreadings, which the read-back and confirm step is there to catch.
+- The phone-network adapters have never carried a live call (see above). Voice quality and language detection are as good as Sarvam's; heavy code-mixing or noisy sites will cause misreadings, which the read-back and confirm step is there to catch.
 
 - Item matching is scored on a synthetic item list that carries the same kinds of mess as a real export; the cases were written by us. It covers one category (waterproofing); other categories need their own list, and Bengali needs a larger word table.
 - Open-request duplicates are checked on project, wording and quantity within 7 days (the test of the spec flag list is covered). A message with several items is split by the matcher, but the agent flow processes one item (or one BOQ package) per case.
