@@ -119,6 +119,17 @@ def build(cid):
     for e in by("chased"):
         for k, v in vend.items():
             if v["name"][:8].lower() in e["text"].lower() and v["state"] == "asked": v["state"] = "chased"
+    chat = []
+    for e in ev:
+        if e["kind"] == "received" and e["actor"] in ("engineer", "hod"):
+            chat.append({"who": e["actor"], "text": e["text"][:300], "ts": e["ts"][11:16]})
+        elif e["kind"] == "message" and e["text"].startswith("→"):
+            m = re.match(r"→ (\w+): (.*)", e["text"], re.S)
+            if m: chat.append({"who": "agent", "to": m.group(1), "text": m.group(2)[:420], "ts": e["ts"][11:16]})
+        elif e["kind"] == "action" and e["actor"] in ("hod", "engineer"):
+            chat.append({"who": e["actor"], "text": e["text"].replace("HOD chose: ", "").replace("Engineer chose: ", "")[:120], "ts": e["ts"][11:16], "choice": True})
+        elif e["kind"] == "note" and e["text"].startswith("Demo:"):
+            chat.append({"who": "demo", "text": e["text"][:200], "ts": e["ts"][11:16]})
     err = [e for e in ev if e["kind"] == "error"]
     return {"case_id": cid, "state": state, "label": engine.STATE_TEXT.get(state, state), "waiting": c["waiting"], "raw": d.get("raw", ""), "channel": d.get("channel", ""), "error": err[-1]["text"] if err else None,
-            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"]}
+            "steps": [steps[k] for k in keys], "vendors": list(vend.values()), "chat": chat[-14:], "events": [{"actor": e["actor"], "kind": e["kind"], "text": e["text"][:160], "ts": e["ts"][11:19]} for e in ev[-6:]], "project": TENDER["project"]}

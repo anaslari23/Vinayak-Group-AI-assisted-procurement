@@ -19,12 +19,18 @@ svg.cv{width:100%;height:auto;background:#fff;border:1px solid var(--line);borde
 .bars .row{display:grid;grid-template-columns:150px 1fr 50px;gap:8px;align-items:center;margin:6px 0;font-size:13px}.bars .track{height:12px;background:#efe9df;border-radius:6px;overflow:hidden;display:flex}.bars .track i{display:block;height:100%}
 .hm{white-space:pre-wrap;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;font-size:13px;margin-top:8px}.sm{color:var(--mut);font-size:13px}
 .log{font-size:12px;color:var(--mut);margin-top:14px}.log div{margin:2px 0}
+.grid2{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:16px;align-items:start}@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.wa{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#efeae2;position:sticky;top:112px;box-shadow:var(--shadow)}.wah{background:#075e54;color:#fff;padding:10px 14px;display:flex;gap:10px;align-items:center;font-size:14px}.wah .sm{color:#cfe9e5}
+.av{width:32px;height:32px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-weight:600}.wam{padding:10px;max-height:560px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.b{max-width:90%;padding:7px 10px;border-radius:9px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.12);animation:rise .35s}.b.agent{background:#fff;align-self:flex-start}.b.engineer{background:#d9fdd3;align-self:flex-end}.b.hod{background:#cfe8ff;align-self:flex-end}
+.b .w{font-size:11px;color:#667781;margin-bottom:2px}.b.demo{align-self:center;background:#fff3cd;font-size:11.5px;color:#7a5b00;text-align:center}.b .t{font-size:10px;color:#667781;text-align:right}.b.choice{font-weight:600}
 </style>
 <div class="hd"><h1 style="margin:0">Live flow</h1><span class="pill2" id="status"><span class="dot"></span><span>connecting</span></span></div>
 <p class="sub" style="margin:6px 0">Each requirement starts its own flow. The agent runs it on its own; nodes light up as it works, vendors branch out as they are asked and reply. Requirements arrive through WhatsApp (agent number +91 89811 07767), Telegram or a voice call, and admins decide in the WhatsApp group. Nothing is pressed here.</p>
 <div class="flows" id="flows"></div><div id="bubble"></div>
-<svg class="cv" id="cv" viewBox="0 0 680 400" role="img" aria-label="Live flow of the current requirement"></svg>
-<div class="now" id="now"><div class="sm">Waiting for a requirement…</div></div><div class="log" id="log"></div>
+<div class="grid2"><div><svg class="cv" id="cv" viewBox="0 0 680 400" role="img" aria-label="Live flow of the current requirement"></svg>
+<div class="now" id="now"><div class="sm">Waiting for a requirement…</div></div><div class="log" id="log"></div></div>
+<div class="wa"><div class="wah"><span class="av">V</span><div><b>Site team group</b><div class="sm" style="font-size:11px">WhatsApp · the agent is a member</div></div></div><div class="wam" id="wam"><div class="sm" style="text-align:center;margin-top:30px">Messages appear here as they happen</div></div></div></div>
 <script>
 const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const POS={capture:[40,24],clarify:[194,24],item:[348,24],stock:[502,24],rfq:[40,140],quotes:[194,140],compare:[348,140],hod:[502,140],outcome:[502,300]};
@@ -50,11 +56,12 @@ function dataHTML(d){if(!d)return'';let h='';if(d.kv)h+='<div class="kv">'+d.kv.
  if(d.message){h+=`<div class="hm">${esc(d.message)}</div>`;if((d.options||[]).length)h+='<div class="sm" style="margin-top:8px">Admins reply in the WhatsApp group: '+d.options.map((o,i)=>(i+1)+' = '+esc(o.label)).join(' · ')+'</div>';}return h}
 function now(j){const order=j.steps;let f=order.find(s=>s.status==='waiting')||order.find(s=>s.status==='active');if(!f){const d=order.filter(s=>s.status==='done');f=d[d.length-1]}if(!f)return;
  const idx=order.indexOf(f)+1;$('now').innerHTML=`<h3>${idx}. ${esc(f.title)} <span class="sm">${esc(f.summary||'')}</span></h3>`+f.checks.map((c,i)=>checkHTML(c,f.key,i)).join('')+dataHTML(f.data);}
+let chatSig='';function chat(j){const sg=JSON.stringify(j.chat||[]);if(sg===chatSig)return;chatSig=sg;const el=$('wam');const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<60;el.innerHTML=(j.chat||[]).map(m=>{const who=m.who==='agent'?'Procurement agent'+(m.to==='hod'?' → admins':''):(m.who==='hod'?'Admin':(m.who==='engineer'?'Site engineer':''));return `<div class="b ${m.who} ${m.choice?'choice':''}">${who?`<div class="w">${who}</div>`:''}${esc(m.text)}<div class="t">${esc(m.ts)}</div></div>`}).join('')||'<div class="sm" style="text-align:center;margin-top:30px">Messages appear here as they happen</div>';if(atBottom)el.scrollTop=el.scrollHeight}
 function render(j){if(!j.case_id){$('status').innerHTML='<span class="dot"></span><span>idle: waiting for a requirement</span>';$('bubble').innerHTML='';$('cv').innerHTML='';return}
  if(j.case_id!==cur){cur=j.case_id;seen=new Set()}
  $('bubble').innerHTML=`<div class="msg">${esc(j.raw)}<div class="sm" style="margin:3px 0 0">case #${j.case_id} · ${esc(j.channel)}</div></div>`;
  $('status').innerHTML=`<span class="dot ${j.waiting?'wait':(j.state!=='DECIDED'?'live':'')}"></span><span>${esc(j.label)}${j.waiting?' · waiting for '+esc(j.waiting.replace('engineer','the requester').replace('hod','the admins')):''}</span>`;
- const s=JSON.stringify([j.steps.map(x=>x.status+x.summary),j.vendors]);if(s!==sig){sig=s;paint(j)}now(j);
+ const s=JSON.stringify([j.steps.map(x=>x.status+x.summary),j.vendors]);if(s!==sig){sig=s;paint(j)}now(j);chat(j);
  $('log').innerHTML=j.error?'<div class="no">Problem: '+esc(j.error)+'</div>':'<b>Agent log</b>'+j.events.map(e=>`<div>${e.ts} · ${esc(e.actor)} · ${esc(e.text)}</div>`).join('')}
 async function tick(){try{render(await (await fetch('/api/flow')).json())}catch(e){}}
 async function flows(){try{const l=await (await fetch('/api/cases')).json();$('flows').innerHTML=l.slice(0,5).map((c,i)=>`<div class="fl ${i?'':'on'}"><b>#${c.id}</b> ${esc(c.raw)}<i style="width:${Math.max(6,c.pct)}%"></i></div>`).join('')}catch(e){}}
