@@ -1,11 +1,11 @@
 from .tender import TENDER
 
 
-def draft(vendor_name: str) -> tuple[str, str]:
+def draft(vendor_name: str, case_id: int | None = None) -> tuple[str, str]:
     t = TENDER
     lines = "\n".join(f"  {l['sl']}. {l['title']}: {l['qty']:,.2f} {l['unit']}   (ERP code {l['item_code']})" for l in t["lines"])
     terms = "\n".join(f"  {i}. {x}" for i, x in enumerate(t["standard_terms"], 1))
-    subject = f"SEEKING QUOTATION FOR WATERPROOFING WORK AT {t['project'].upper()} ({t['package']})"
+    subject = f"SEEKING QUOTATION FOR WATERPROOFING WORK AT {t['project'].upper()} ({t['package']})" + (f" [Case #{case_id}]" if case_id else "")
     body = f"""Dear {vendor_name},
 
 Please find the description of work and quantities below. Kindly submit your commercial quotation against these quantities and the standard terms.
@@ -31,9 +31,9 @@ Contracts & Planning, Vinayak Group
     return subject, body
 
 
-def draft_generic(vendor_name: str, parsed: dict, item_code: str | None) -> tuple[str, str]:
+def draft_generic(vendor_name: str, parsed: dict, item_code: str | None, case_id: int | None = None) -> tuple[str, str]:
     """RFQ for a requirement that has no BOQ package on file (single item)."""
-    subject = f"SEEKING QUOTATION: {parsed.get('item_description', 'material')}"
+    subject = f"SEEKING QUOTATION: {parsed.get('item_description', 'material')}" + (f" [Case #{case_id}]" if case_id else "")
     body = f"""Dear {vendor_name},
 
 Please quote for the following requirement.

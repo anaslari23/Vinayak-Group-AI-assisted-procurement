@@ -18,7 +18,11 @@ def test_case_runs_without_clicks(tmp_path, monkeypatch):
     assert all(to.endswith("@rfq-test.example") for k, to in sent if k == "rfq")
     for f in sorted((DATA_DIR / "quotes").glob("*.pdf")): engine.on_vendor_reply(cid, f)
     assert engine._case(cid)["state"] == "QUOTING"                         # two vendors silent: waits for the deadline
-    engine.advance_time(cid, 48)
+    assert any(k == "followup" for k, _ in sent)                          # incomplete quotes get questions, nobody clicked
+    engine.advance_time(cid, 24)
+    assert len([s for s in sent if s[0] == "chaser"]) == 2                 # the two silent vendors are chased once
+    assert engine._case(cid)["state"] == "QUOTING"
+    engine.advance_time(cid, 24)
     c = engine._case(cid); assert c["state"] == "AWAITING_HOD" and c["waiting"] == "hod"
     engine.on_hod_action(cid, "decision:approve")
     assert engine._case(cid)["state"] == "DECIDED"

@@ -12,6 +12,7 @@ from .scoring import rank, reasons, W
 from .tender import TENDER, DATA_DIR
 
 RFQ_HOURS = 48
+CHASE_HOURS = 24
 _locks: dict = {}
 
 
@@ -138,25 +139,36 @@ def h_rfq(c):
     vs = shortlist(d["parsed"]); sent = []
     if len(vs) < 3: log(cid, "agent", "note", f"Only {len(vs)} vendors in this category; SOP asks for at least 3.")
     for v in vs:
-        subj, body = rfq.draft(v["name"]) if d["has_boq"] else rfq.draft_generic(v["name"], d["parsed"], d.get("item_code"))
+        subj, body = rfq.draft(v["name"], cid) if d["has_boq"] else rfq.draft_generic(v["name"], d["parsed"], d.get("item_code"), cid)
         try:
             st = mailer.send("rfq", v["test_email"], subj, body); sent.append(v["key"])
         except mailer.RecipientBlocked as e:
             st = f"BLOCKED: {e}"
         log(cid, "agent", "rfq_sent", f"RFQ to {v['name']} ({'registered' if v['registered'] else 'NOT registered, needs vendor registration'}): {st}")
-    d["shortlist"] = sent; d["deadline"] = (now(c) + timedelta(hours=RFQ_HOURS)).isoformat()
+    d["shortlist"] = sent; d["rfq_at"] = now(c).isoformat(); d["chased"] = []; d["followups"] = {}; d["deadline"] = (now(c) + timedelta(hours=RFQ_HOURS)).isoformat()
     say(cid, "engineer", f"RFQ sent to {len(sent)} vendors. I will read their replies, chase anyone silent, and bring the HOD a ranked recommendation. Nothing more is needed from you.")
     _save(cid, "QUOTING", "vendors", d); return True
 
 
 def h_quoting(c):
     cid, d = c["id"], c["data"]
-    if not d["has_boq"]: return False  # no BOQ package: generic quote reading arrives in a later phase
-    got = quotes_of(cid); due = now(c) >= datetime.fromisoformat(d["deadline"])
+    if not d["has_boq"]: return False  # no BOQ package: generic quote reading is a later phase
+    got = quotes_of(cid); t = now(c); due = t >= datetime.fromisoformat(d["deadline"])
+    # chase silent vendors once, 24 h after the RFQ
+    if t >= datetime.fromisoformat(d["rfq_at"]) + timedelta(hours=CHASE_HOURS):
+        silent = [k for k in d["shortlist"] if k not in d.get("replied", []) and k not in d["chased"]]
+        for k in silent:
+            v = _vendor(k)
+            try: mailer.send("chaser", v["test_email"], f"Reminder: quotation request [Case #{cid}]", f"Dear {v['name']},\n\nA reminder that we are still waiting for your quotation. Please reply to this email with your rates against the quantities sent, by the deadline.\n\nRegards,\nVinayak Group procurement desk (TEST mail)")
+            except mailer.RecipientBlocked: continue
+            d["chased"].append(k); log(cid, "agent", "chased", f"Chased {v['name']}: no quote yet after {CHASE_HOURS} h.")
+        if silent: _save(cid, data=d)
     if len(got) >= len(d["shortlist"]) or (due and len(got) >= 2):
         if len(got) < len(d["shortlist"]):
             silent = [v for v in d["shortlist"] if v not in d.get("replied", [])]
-            log(cid, "agent", "note", f"Deadline passed. Comparing the {len(got)} quotes received; {len(silent)} vendor(s) did not reply.")
+            log(cid, "agent", "note", f"Deadline passed. Comparing the {len(got)} quotes received; {len(silent)} vendor(s) did not reply" + (f" even after a reminder." if d["chased"] else "."))
+        pend = [k for k in d.get("followups", {}) if d["followups"][k] and k not in d.get("clarified", [])]
+        if pend: log(cid, "agent", "note", "Still unanswered follow-ups: " + ", ".join(_vendor(k)["name"] for k in pend) + ". Their open points are marked as assumptions.")
         _save(cid, "COMPARE", None, d); return True
     return False
 
@@ -230,16 +242,80 @@ def extract_any(path: Path):
     return extract_quote(path), "live extraction"
 
 
-def on_vendor_reply(cid, path: Path):
+def _vendor(key):
+    c = db.con(); r = c.execute("select * from vendors where key=?", (key,)).fetchone(); c.close()
+    return dict(r) if r else {"key": key, "name": key, "test_email": None}
+
+
+def issues_for(q: dict):
+    """What a careful buyer would ask this vendor before comparing: only things that change the money or the risk."""
+    from .normalise import normalise
+    n = normalise(q); out = []
+    if n["gst_assumed"]: out.append("Please confirm the GST rate and whether your rates are inclusive or exclusive of GST.")
+    if not n["terms_stated"]: out.append("Please state your payment terms (advance %, credit days).")
+    weak = [str(l["sl"]) for l in n["lines"] if l.get("confidence") in ("low", "medium")]
+    if weak: out.append(f"Some rates were hard to read. Please confirm your rate for item(s) {', '.join(weak)}.")
+    for l in n["lines"]:
+        if any("differs from tender unit" in f for f in l["flags"]): out.append(f"Item {l['sl']}: please quote the rate in the tender unit.")
+    if n["expired"] or n["stale"] or n["quote_age_days"] is None: out.append("Please confirm your quotation is valid today, and for how many days.")
+    fr = q.get("freight") or {}
+    if fr.get("included") is None and not fr.get("amount"): out.append("Is freight / mobilisation included in your rates, or extra?")
+    return out
+
+
+def _follow_up(cid, key, q, d):
+    iss = issues_for(q)
+    if not iss or key in d.setdefault("followups", {}): return
+    v = _vendor(key)
+    body = f"Dear {v['name']},\n\nThank you for your quotation. To compare it fairly with the others, please clarify:\n\n" + "\n".join(f"  {i}. {x}" for i, x in enumerate(iss, 1)) + "\n\nPlease reply to this email.\n\nRegards,\nVinayak Group procurement desk (TEST mail)"
+    try: mailer.send("followup", v["test_email"], f"Clarification needed on your quotation [Case #{cid}]", body)
+    except mailer.RecipientBlocked: return
+    d["followups"][key] = iss
+    log(cid, "agent", "followup", f"Asked {v['name']} {len(iss)} question(s): " + " | ".join(iss))
+
+
+def on_vendor_reply(cid, path: Path, vendor_key: str | None = None):
     with _lock(cid):
-        q, how = extract_any(path); v, _ = db.match_vendor(q["vendor_name"]); key = v["key"] if v else q["vendor_name"]
+        q, how = extract_any(path); v, _ = db.match_vendor(q["vendor_name"]); key = vendor_key or (v["key"] if v else q["vendor_name"])
         c = db.con(); c.execute("insert or replace into quotes(case_id,vendor_key,source_file,extracted) values(?,?,?,?)", (cid, key, path.name, json.dumps(q))); c.commit(); c.close()
-        cs = _case(cid); d = cs["data"]; d.setdefault("replied", []); d["replied"] = list(set(d["replied"] + [key])); _save(cid, data=d)
+        cs = _case(cid); d = cs["data"]; d.setdefault("replied", []); d["replied"] = list(set(d["replied"] + [key]))
         from .normalise import normalise
         n = normalise(q)
         log(cid, f"vendor:{q['vendor_name']}", "reply_received", f"Quote received: {path.name}")
         log(cid, "agent", "extracted", f"Read the quote ({how}): landed Rs {n['landed']:,.0f} at tender quantities; {len(n['flags'])} flag(s): " + " | ".join(n["flags"][:3]), {"flags": n["flags"]})
+        _follow_up(cid, key, q, d); _save(cid, data=d)
     advance(cid)
+
+
+UPDATE_PROMPT = """Today's date is 2026-11-21. Here is a vendor's quotation as structured JSON:
+{cur}
+
+The vendor replied to our clarification questions with this email text:
+\"{reply}\"
+
+Return the UPDATED quotation as one JSON object with exactly the same keys and structure. Only change what the reply states: rate corrections go into the matching line (set rate_confidence to "high"), payment terms into payment_terms, GST into gst, validity into validity_days, freight into freight (amount in Rs if a lump sum is charged extra). If the vendor re-confirms the quote as valid from today, set quote_date to today."""
+
+
+def on_vendor_text_reply(cid, vendor_key: str, text: str):
+    from .llm import ask_json
+    from .normalise import normalise
+    with _lock(cid):
+        c = db.con(); r = c.execute("select extracted from quotes where case_id=? and vendor_key=?", (cid, vendor_key)).fetchone(); c.close()
+        v = _vendor(vendor_key); log(cid, f"vendor:{v['name']}", "reply_received", f"Reply to follow-up: {text[:200]}")
+        if not r: log(cid, "agent", "note", f"Reply from {v['name']} but no quote on file yet; noted."); return
+        old = json.loads(r["extracted"]); before = normalise(old)
+        new = ask_json(UPDATE_PROMPT.format(cur=json.dumps(old), reply=text.replace('"', "'")), max_tokens=6000)
+        after = normalise(new)
+        c = db.con(); c.execute("update quotes set extracted=? where case_id=? and vendor_key=?", (json.dumps(new), cid, vendor_key)); c.commit(); c.close()
+        d = _case(cid)["data"]; d["clarified"] = list(set(d.get("clarified", []) + [vendor_key])); _save(cid, data=d)
+        log(cid, "agent", "updated", f"Updated {v['name']}'s quote from their reply: landed Rs {before['landed']:,.0f} -> Rs {after['landed']:,.0f}; open flags {len(before['flags'])} -> {len(after['flags'])}.")
+    advance(cid)
+
+
+def tick():
+    """Scheduler heartbeat: lets time-based rules (chasers, deadlines) fire on their own."""
+    c = db.con(); ids = [r["id"] for r in c.execute("select id from cases where state='QUOTING'")]; c.close()
+    for cid in ids: advance(cid)
 
 
 def advance_time(cid, hours: float):

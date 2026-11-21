@@ -21,9 +21,17 @@ def check(addr: str):
         raise RecipientBlocked(f"{addr!r} is not a single address on the test-inbox allowlist {ALLOWED_DOMAINS}")
 
 
-def send(kind: str, to: str, subject: str, body: str) -> str:
+AGENT_ADDR = "procurement-agent@vinayak-test.example"
+
+
+def send(kind: str, to: str, subject: str, body: str, frm: str = AGENT_ADDR, attachments: list | None = None) -> str:
     check(to)  # raises before anything is sent or logged as sent
-    msg = EmailMessage(); msg["From"] = "procurement-agent@vinayak-test.example"; msg["To"] = to; msg["Subject"] = subject; msg.set_content(body)
+    check(frm)
+    msg = EmailMessage(); msg["From"] = frm; msg["To"] = to; msg["Subject"] = subject; msg.set_content(body)
+    for path in attachments or []:
+        import mimetypes
+        mt = (mimetypes.guess_type(str(path))[0] or "application/octet-stream").split("/")
+        msg.add_attachment(open(path, "rb").read(), maintype=mt[0], subtype=mt[1], filename=path.name)
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=3) as s:
             s.send_message(msg)

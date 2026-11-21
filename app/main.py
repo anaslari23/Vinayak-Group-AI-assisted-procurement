@@ -28,6 +28,8 @@ def boot():
     db.init()
     from . import telegram_bot
     print("[agent]", telegram_bot.start())
+    from . import scheduler
+    scheduler.start()
     c = db.con()
     if c.execute("select count(*) from quotes").fetchone()[0] == 0 and CACHE.exists():  # cached extractions of the 4 received quotes (see README)
         for f in sorted(CACHE.glob("*.json")):
@@ -275,17 +277,45 @@ def case_button(cid: int, data: str = Form(...)):
     engine.bg(engine.on_hod_action, cid, data); return RedirectResponse(f"/cases/{cid}", 303)
 
 
+def _demo_quotes():
+    out = []
+    for f in sorted((DATA_DIR / "quotes").glob("*.pdf")):
+        q = json.loads((DATA_DIR / "cache" / (f.stem + ".json")).read_text()); v, _ = db.match_vendor(q["vendor_name"]); out.append((f, v["key"] if v else q["vendor_name"]))
+    return out
+
+
+def _vendor_email(cid, key, subject, body, attach=None):
+    """A vendor writes back to the agent's inbox. With Mailpit this is a real email the watcher picks up; without it, injected directly."""
+    from . import mailer
+    st = mailer.send("vendor-reply", mailer.AGENT_ADDR, f"{subject} [Case #{cid}]", body, frm=f"rfq+{key}@rfq-test.example", attachments=[attach] if attach else None)
+    return "logged only" not in st
+
+
 @app.post("/cases/{cid}/simulate-vendors")
 def case_sim(cid: int):
     def run():
         import time
-        for f in sorted((DATA_DIR / "quotes").glob("*.pdf")):
-            time.sleep(1.5); engine.on_vendor_reply(cid, f)
+        for f, key in _demo_quotes():
+            time.sleep(1.5)
+            if not _vendor_email(cid, key, "Re: SEEKING QUOTATION", "Please find our quotation attached.", f): engine.on_vendor_reply(cid, f, key)
+    engine.bg(run); return RedirectResponse(f"/cases/{cid}", 303)
+
+
+@app.post("/cases/{cid}/simulate-answers")
+def case_answers(cid: int):
+    canned = json.loads((DATA_DIR / "followup_replies.json").read_text()) if (DATA_DIR / "followup_replies.json").exists() else {}
+    def run():
+        import time
+        d = engine._case(cid)["data"]
+        for key, qs in (d.get("followups") or {}).items():
+            if not qs or key in d.get("clarified", []): continue
+            time.sleep(1.5); text = next((v for frag, v in canned.items() if frag in key), "Noted, we will confirm shortly.")
+            if not _vendor_email(cid, key, "Re: Clarification needed on your quotation", text): engine.on_vendor_text_reply(cid, key, text)
     engine.bg(run); return RedirectResponse(f"/cases/{cid}", 303)
 
 
 @app.post("/cases/{cid}/fastforward")
-def case_ff(cid: int, hours: float = Form(48)):
+def case_ff(cid: int, hours: float = Form(24)):
     engine.bg(engine.advance_time, cid, hours); return RedirectResponse(f"/cases/{cid}", 303)
 
 

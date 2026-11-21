@@ -9,4 +9,5 @@
 {% if role=='engineer' %}<form method="post" action="/cases/{{c.id}}/say"><input type="hidden" name="role" value="engineer"><input type="text" name="text" placeholder="Reply as the engineer"><button class="sec" style="margin-top:4px">Send</button></form>{% endif %}</div>{% endfor %}
 <div class="card"><b>Demo controls</b><p class="mut" style="margin:4px 0">Stand-ins for real-world events.</p>
 <form method="post" action="/cases/{{c.id}}/simulate-vendors" style="display:inline"><button class="sec">Vendors email their quotes</button></form>
-<form method="post" action="/cases/{{c.id}}/fastforward" style="display:inline"><button class="sec">Fast-forward 48 h</button></form></div></div></div>
+<form method="post" action="/cases/{{c.id}}/fastforward" style="display:inline"><button class="sec">Fast-forward 24 h</button></form>
+<form method="post" action="/cases/{{c.id}}/simulate-answers" style="display:inline"><button class="sec">Vendors answer follow-ups</button></form></div></div></div>
