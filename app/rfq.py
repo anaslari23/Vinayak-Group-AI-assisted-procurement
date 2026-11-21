@@ -29,3 +29,25 @@ Contracts & Planning, Vinayak Group
 (TEST RFQ: sent to a test inbox, not to a real vendor)
 """
     return subject, body
+
+
+def draft_generic(vendor_name: str, parsed: dict, item_code: str | None) -> tuple[str, str]:
+    """RFQ for a requirement that has no BOQ package on file (single item)."""
+    subject = f"SEEKING QUOTATION: {parsed.get('item_description', 'material')}"
+    body = f"""Dear {vendor_name},
+
+Please quote for the following requirement.
+
+  Item: {parsed.get('item_description')}
+  ERP item code: {item_code or 'to be created'}
+  Quantity: {parsed.get('quantity') or 'to be confirmed'} {parsed.get('uom') or ''}
+  Project / location: {parsed.get('project') or parsed.get('location') or '-'}
+  Needed by: {parsed.get('needed_by') or '-'}
+
+Please state unit rate, GST rate and whether rates are inclusive or exclusive, freight, payment terms, delivery time and quote validity.
+
+Thanks & Regards,
+Contracts & Planning
+(TEST RFQ: sent to a test inbox, not to a real vendor)
+"""
+    return subject, body

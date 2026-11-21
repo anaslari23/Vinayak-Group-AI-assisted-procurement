@@ -14,3 +14,4 @@ button.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}textare
 pre{white-space:pre-wrap;background:#f4efe7;padding:12px;border-radius:8px;font-size:13px;margin:0}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:8px 12px;border-radius:8px;font-size:13px;margin:12px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}ul.r{margin:6px 0 0 18px;padding:0}ul.r li{margin:2px 0}
 .rank{font-size:26px;font-weight:700;color:var(--acc)}.bar{height:8px;border-radius:4px;background:#e7e2db;overflow:hidden}.bar i{display:block;height:100%}
+.card{overflow-wrap:anywhere}

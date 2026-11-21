@@ -1,0 +1,12 @@
+<p class="sub">State: <b>{{STATE_LABEL.get(c.state, c.state)}}</b> · waiting for: <b>{{c.waiting or ('nobody, case closed' if c.state=='DECIDED' else 'nobody, the agent is working')}}</b> · demo clock +{{c.clock_offset_h|round|int}} h</p>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))">
+<div><h2 style="margin-top:0">What the agent did</h2>
+{% for e in ev %}<div class="card" style="padding:8px 12px;margin:6px 0"><span class="pill">{{e.actor}}</span> <span class="mut" style="font-size:12px">{{e.kind}} · {{e.ts[11:19]}}</span><div>{{e.text}}</div></div>{% endfor %}</div>
+<div><h2 style="margin-top:0">Chats</h2>
+{% for role in ['engineer','hod'] %}<div class="card"><b>{{'Site engineer' if role=='engineer' else 'HOD'}}</b>
+{% for m in ch if m.to_role==role %}<div style="margin:8px 0;padding:8px;background:#f4efe7;border-radius:8px;white-space:pre-wrap">{{m.text}}
+{% if m.buttons and c.waiting==role %}<form method="post" action="/cases/{{c.id}}/button" style="margin-top:6px">{% for b in m.buttons %}<button name="data" value="{{b.data}}" class="{{'' if loop.first else 'sec'}}" style="margin:2px">{{b.label}}</button>{% endfor %}</form>{% endif %}</div>{% else %}<p class="mut">No messages yet.</p>{% endfor %}
+{% if role=='engineer' %}<form method="post" action="/cases/{{c.id}}/say"><input type="hidden" name="role" value="engineer"><input type="text" name="text" placeholder="Reply as the engineer"><button class="sec" style="margin-top:4px">Send</button></form>{% endif %}</div>{% endfor %}
+<div class="card"><b>Demo controls</b><p class="mut" style="margin:4px 0">Stand-ins for real-world events.</p>
+<form method="post" action="/cases/{{c.id}}/simulate-vendors" style="display:inline"><button class="sec">Vendors email their quotes</button></form>
+<form method="post" action="/cases/{{c.id}}/fastforward" style="display:inline"><button class="sec">Fast-forward 48 h</button></form></div></div></div>

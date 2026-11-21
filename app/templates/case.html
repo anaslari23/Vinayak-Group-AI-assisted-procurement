@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block body %}
+<h1>Case #{{c.id}}</h1>
+<div id="live">{% include "case_fragment.html" %}</div>
+<script>setInterval(async()=>{const a=document.activeElement;if(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'))return;
+const r=await fetch('/cases/{{c.id}}/fragment');if(r.ok)document.getElementById('live').innerHTML=await r.text();},2500);</script>
+{% endblock %}

@@ -20,7 +20,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
+STEPS = [("A", "Agent", "/cases"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
 @app.on_event("startup")
@@ -30,7 +30,7 @@ def boot():
     if c.execute("select count(*) from quotes").fetchone()[0] == 0 and CACHE.exists():  # cached extractions of the 4 received quotes (see README)
         for f in sorted(CACHE.glob("*.json")):
             q = json.loads(f.read_text()); v, _ = db.match_vendor(q["vendor_name"])
-            c.execute("insert or replace into quotes values(?,?,?,CURRENT_TIMESTAMP)", ((v["key"] if v else q["vendor_name"]), f.name, json.dumps(q)))
+            c.execute("insert or replace into quotes(case_id,vendor_key,source_file,extracted) values(0,?,?,?)", ((v["key"] if v else q["vendor_name"]), f.name, json.dumps(q)))
         c.commit()
     c.close()
 
@@ -39,8 +39,8 @@ def page(request, name, active, **ctx):
     return T.TemplateResponse(request, name, {"steps": STEPS, "active": active, **ctx})
 
 
-def all_quotes():
-    c = db.con(); r = [json.loads(x["extracted"]) for x in c.execute("select extracted from quotes")]; c.close(); return r
+def all_quotes(case_id=0):
+    c = db.con(); r = [json.loads(x["extracted"]) for x in c.execute("select extracted from quotes where case_id=?", (case_id,))]; c.close(); return r
 
 
 def weights(request):
@@ -130,7 +130,7 @@ async def quote_upload(file: UploadFile = File(...)):
         path = path.with_suffix(".txt"); path.write_text(txt)
     q = extract_quote(path)
     v, _ = db.match_vendor(q["vendor_name"])
-    c = db.con(); c.execute("insert or replace into quotes values(?,?,?,CURRENT_TIMESTAMP)", ((v["key"] if v else q["vendor_name"]), file.filename, json.dumps(q))); c.commit(); c.close()
+    c = db.con(); c.execute("insert or replace into quotes(case_id,vendor_key,source_file,extracted) values(0,?,?,?)", ((v["key"] if v else q["vendor_name"]), file.filename, json.dumps(q))); c.commit(); c.close()
     return RedirectResponse("/quotes", 303)
 
 
@@ -227,3 +227,61 @@ def eval_page(request: Request):
     from .evalq import run
     qs = [json.loads(f.read_text()) for d in ("cache", "eval_cache") for f in sorted((DATA_DIR / d).glob("*.json"))]
     return page(request, "eval.html", "", res=run(qs), synthetic=TENDER.get("synthetic"))
+
+
+# ---- the agent: cases
+from . import engine
+STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "ITEM_REVIEW": "waiting for HOD (item code)", "RFQ": "sending RFQs",
+               "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for HOD decision", "DECIDED": "closed"}
+T.env.globals["STATE_LABEL"] = STATE_LABEL
+
+
+@app.get("/cases", response_class=HTMLResponse)
+def cases(request: Request):
+    c = db.con(); rows = [dict(r) for r in c.execute("select * from cases order by id desc")]; c.close()
+    for r in rows: r["data"] = json.loads(r["data"] or "{}")
+    return page(request, "cases.html", "A", rows=rows)
+
+
+@app.post("/cases/new")
+def cases_new(text: str = Form(...)):
+    cid = engine.new_case(text.strip(), "web"); engine.bg(engine.advance, cid)
+    return RedirectResponse(f"/cases/{cid}", 303)
+
+
+@app.get("/cases/{cid}", response_class=HTMLResponse)
+def case_page(request: Request, cid: int):
+    ev, ch = engine.timeline(cid); c = engine._case(cid)
+    return page(request, "case.html", "A", c=c, ev=ev, ch=ch)
+
+
+@app.get("/cases/{cid}/fragment", response_class=HTMLResponse)
+def case_fragment(request: Request, cid: int):
+    ev, ch = engine.timeline(cid); c = engine._case(cid)
+    return T.TemplateResponse(request, "case_fragment.html", {"c": c, "ev": ev, "ch": ch})
+
+
+@app.post("/cases/{cid}/say")
+def case_say(cid: int, role: str = Form(...), text: str = Form(...)):
+    if role == "engineer": engine.bg(engine.on_engineer_message, cid, text)
+    else: engine.log(cid, "hod", "received", text)
+    return RedirectResponse(f"/cases/{cid}", 303)
+
+
+@app.post("/cases/{cid}/button")
+def case_button(cid: int, data: str = Form(...)):
+    engine.bg(engine.on_hod_action, cid, data); return RedirectResponse(f"/cases/{cid}", 303)
+
+
+@app.post("/cases/{cid}/simulate-vendors")
+def case_sim(cid: int):
+    def run():
+        import time
+        for f in sorted((DATA_DIR / "quotes").glob("*.pdf")):
+            time.sleep(1.5); engine.on_vendor_reply(cid, f)
+    engine.bg(run); return RedirectResponse(f"/cases/{cid}", 303)
+
+
+@app.post("/cases/{cid}/fastforward")
+def case_ff(cid: int, hours: float = Form(48)):
+    engine.bg(engine.advance_time, cid, hours); return RedirectResponse(f"/cases/{cid}", 303)

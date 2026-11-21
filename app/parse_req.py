@@ -28,3 +28,17 @@ def transcribe(audio: Path) -> str:
     r.raise_for_status()
     j = r.json()
     return j.get("transcript") or j.get("text") or ""
+
+
+MERGE = """Current structured requirement (JSON):
+{cur}
+
+The engineer replied with this message answering the follow-up questions:
+\"{reply}\"
+
+Return the UPDATED requirement as one JSON object with exactly the same keys. Only fill or change a field if the reply states it. Keep the 'missing' list limited to what is still unknown."""
+
+
+def merge(parsed: dict, reply: str) -> dict:
+    import json
+    return ask_json(MERGE.format(cur=json.dumps(parsed), reply=reply.replace('"', "'")), max_tokens=800)
