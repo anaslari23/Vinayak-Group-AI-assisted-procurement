@@ -515,24 +515,86 @@ def call_audio(call_id: str):
     return Response(AUDIO.get(call_id, b""), media_type="audio/wav")
 
 
-# Telephony hook: point a phone number's voice webhook here (Twilio-style: Record, then Play the reply). UNTESTED without a provider account.
+# ---- Telephony: a phone number's voice webhook points here (Twilio-style TwiML). Built to Twilio's documented behaviour; NOT yet tested on a live call.
+# Twilio abandons a webhook that takes longer than ~15 s and a turn takes 6-17 s, so each turn runs in the background and the caller's line polls for it.
+import asyncio, hashlib, hmac, threading, time as _time
+TEL: dict = {}
+
+
+def _twiml(body: str):
+    from fastapi.responses import Response
+    return Response(f'<?xml version="1.0" encoding="UTF-8"?><Response>{body}</Response>', media_type="application/xml")
+
+
+async def _twilio_ok(request: Request):
+    """If TWILIO_VALIDATE=1, only accept requests really signed by Twilio (X-Twilio-Signature, HMAC-SHA1 over URL + sorted params)."""
+    if os.getenv("TWILIO_VALIDATE") != "1": return True
+    form = await request.form(); url = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/")) + request.url.path
+    if request.url.query: url += "?" + request.url.query
+    data = url + "".join(k + str(form[k]) for k in sorted(form.keys()))
+    mac = _b64.b64encode(hmac.new(os.environ.get("TWILIO_AUTH_TOKEN", "").encode(), data.encode(), hashlib.sha1).digest()).decode()
+    return hmac.compare_digest(mac, request.headers.get("X-Twilio-Signature", ""))
+
+
+def _play(key: str, wav: bytes, base: str):
+    AUDIO[key] = voice.to_phone_wav(wav); return f"<Play>{base}/call/audio/{key}.wav</Play>"
+
+
+def _record(base: str):
+    return f'<Record action="{base}/telephony/recording" method="POST" maxLength="30" timeout="4" playBeep="false" trim="trim-silence"/>'
+
+
 @app.post("/telephony/voice")
 async def tel_voice(request: Request):
-    from fastapi.responses import Response
-    base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
-    wav = voice.tts("नमस्ते, मैं विनायक ग्रुप का प्रोक्योरमेंट असिस्टेंट हूँ। बताइए, किस सामग्री की ज़रूरत है? आप किसी भी भाषा में बोल सकते हैं।", "hi-IN"); AUDIO["greet"] = wav
-    twiml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Play>{base}/call/audio/greet.wav</Play><Record action="{base}/telephony/recording" maxLength="30" timeout="3" playBeep="true"/></Response>'
-    return Response(twiml, media_type="application/xml")
+    if not await _twilio_ok(request): return HTMLResponse("forbidden", 403)
+    form = await request.form(); base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    if "greet" not in AUDIO:
+        AUDIO["greet"] = voice.to_phone_wav(voice.tts("नमस्ते, मैं विनायक ग्रुप का प्रोक्योरमेंट असिस्टेंट हूँ। बताइए, किस सामग्री की ज़रूरत है? आप किसी भी भाषा में बोल सकते हैं।", "hi-IN"))
+    TEL[str(form.get("CallSid"))] = {"from": str(form.get("From", "")), "n": 0}
+    return _twiml(f"<Play>{base}/call/audio/greet.wav</Play>{_record(base)}")
+
+
+def _fetch_recording(url: str) -> bytes:
+    import httpx
+    auth = (os.environ.get("TWILIO_ACCOUNT_SID", ""), os.environ.get("TWILIO_AUTH_TOKEN", ""))
+    last = None
+    for _ in range(6):   # the media can take a moment to become available after the webhook fires
+        r = httpx.get(url + ".wav", auth=auth if auth[0] else None, timeout=30, follow_redirects=True)
+        if r.status_code == 200 and len(r.content) > 500: return r.content
+        last = r.status_code; _time.sleep(1)
+    raise RuntimeError(f"recording not available (HTTP {last})")
 
 
 @app.post("/telephony/recording")
 async def tel_recording(request: Request):
-    from fastapi.responses import Response
-    import httpx
-    form = await request.form(); sid = str(form.get("CallSid", "")); url = str(form.get("RecordingUrl", ""))
+    if not await _twilio_ok(request): return HTMLResponse("forbidden", 403)
+    form = await request.form(); sid = str(form.get("CallSid", "")); url = str(form.get("RecordingUrl", "")); base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    t = TEL.setdefault(sid, {"from": "", "n": 0}); t["n"] += 1; n = t["n"]
+    if not url:
+        return _twiml(_play(f"{sid}m{n}", voice.tts("Sorry, I did not hear anything. Please say it again.", "en-IN"), base) + _record(base))
+    def run():
+        try:
+            audio = _fetch_recording(url); r = callmod.turn(sid, audio, "call.wav")
+            if t["n"] == 1 and r.get("case_id"): engine.log(r["case_id"], "system", "call", f"Phone call from {t['from'] or 'unknown number'}")
+            TEL[sid + f":{n}"] = r
+        except Exception as e:
+            TEL[sid + f":{n}"] = {"error": f"{type(e).__name__}: {e}"}
+    threading.Thread(target=run, daemon=True).start()
+    return _twiml(f'<Redirect method="POST">{base}/telephony/poll?sid={sid}&amp;n={n}</Redirect>')
+
+
+@app.post("/telephony/poll")
+async def tel_poll(request: Request, sid: str, n: int):
+    if not await _twilio_ok(request): return HTMLResponse("forbidden", 403)
     base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
-    auth = (os.environ.get("TWILIO_ACCOUNT_SID", ""), os.environ.get("TWILIO_AUTH_TOKEN", ""))
-    audio = httpx.get(url + ".wav", auth=auth if auth[0] else None, timeout=30, follow_redirects=True).content
-    r = callmod.turn(sid, audio, "call.wav"); AUDIO[sid + "r"] = r["wav"]
-    tail = "<Hangup/>" if r["done"] else f'<Record action="{base}/telephony/recording" maxLength="30" timeout="3" playBeep="true"/>'
-    return Response(f'<?xml version="1.0" encoding="UTF-8"?><Response><Play>{base}/call/audio/{sid}r.wav</Play>{tail}</Response>', media_type="application/xml")
+    for _ in range(18):                       # hold up to ~9 s, well inside Twilio's 15 s limit
+        r = TEL.get(f"{sid}:{n}")
+        if r: break
+        await asyncio.sleep(0.5)
+    else:
+        return _twiml(f'<Pause length="1"/><Redirect method="POST">{base}/telephony/poll?sid={sid}&amp;n={n}</Redirect>')
+    TEL.pop(f"{sid}:{n}", None)
+    if r.get("error"):
+        return _twiml(_play(f"{sid}e{n}", voice.tts("Sorry, something went wrong on my side. Please call again.", "en-IN"), base) + "<Hangup/>")
+    play = _play(f"{sid}r{n}", r["wav"], base)
+    return _twiml(play + ("<Hangup/>" if r["done"] else _record(base)))

@@ -45,3 +45,11 @@ def to_ogg_opus(wav: bytes) -> bytes:
     d = Path(tempfile.mkdtemp()); (d / "a.wav").write_bytes(wav)
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(d / "a.wav"), "-c:a", "libopus", "-b:a", "32k", str(d / "a.ogg")], check=True, timeout=60)
     return (d / "a.ogg").read_bytes()
+
+
+def to_phone_wav(wav: bytes) -> bytes:
+    """Telephone audio is 8 kHz mono; convert so any carrier can play it. Falls back to the original if ffmpeg is missing."""
+    if not shutil.which("ffmpeg"): return wav
+    d = Path(tempfile.mkdtemp()); (d / "a.wav").write_bytes(wav)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(d / "a.wav"), "-ar", "8000", "-ac", "1", "-c:a", "pcm_s16le", str(d / "b.wav")], check=True, timeout=60)
+    return (d / "b.wav").read_bytes()
