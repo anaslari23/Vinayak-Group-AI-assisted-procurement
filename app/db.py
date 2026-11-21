@@ -10,14 +10,20 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS items(code TEXT, descr TEXT, source TEXT DEFAULT 'ERP export (data pack)');
 CREATE TABLE IF NOT EXISTS vendors(key TEXT PRIMARY KEY, name TEXT, category TEXT, registered INT, test_email TEXT, category_source TEXT);
 CREATE TABLE IF NOT EXISTS vendor_history(id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_key TEXT, project TEXT, work TEXT,
-   quality INT, on_time INT, delay_days INT, disputes INT, note TEXT, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP, job_date TEXT);
-CREATE TABLE IF NOT EXISTS vendor_signals(id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_key TEXT, case_id INTEGER, responded INT, hours REAL, chased INT, issues INT, vs_lowest_pct REAL, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
+   quality INT, on_time INT, delay_days INT, disputes INT, note TEXT, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP, job_date TEXT, origin TEXT DEFAULT 'agent');
+CREATE TABLE IF NOT EXISTS vendor_signals(id INTEGER PRIMARY KEY AUTOINCREMENT, vendor_key TEXT, case_id INTEGER, responded INT, hours REAL, chased INT, issues INT, vs_lowest_pct REAL, source TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP, origin TEXT DEFAULT 'agent');
 CREATE TABLE IF NOT EXISTS requirements(id INTEGER PRIMARY KEY AUTOINCREMENT, raw TEXT, channel TEXT, parsed TEXT, match TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS mail_log(id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, to_addr TEXT, subject TEXT, body TEXT, status TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS quotes(case_id INTEGER DEFAULT 0, vendor_key TEXT, source_file TEXT, extracted TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(case_id, vendor_key));
 CREATE TABLE IF NOT EXISTS cases(id INTEGER PRIMARY KEY AUTOINCREMENT, state TEXT, waiting TEXT, data TEXT, clock_offset_h REAL DEFAULT 0, created TEXT DEFAULT CURRENT_TIMESTAMP, updated TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, case_id INTEGER, actor TEXT, kind TEXT, text TEXT, payload TEXT, ts TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS chat_messages(id INTEGER PRIMARY KEY AUTOINCREMENT, case_id INTEGER, to_role TEXT, text TEXT, buttons TEXT, sent INT DEFAULT 0, ts TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS sites(name TEXT PRIMARY KEY, project TEXT, city TEXT, note TEXT);
+CREATE TABLE IF NOT EXISTS materials(code TEXT PRIMARY KEY, name TEXT, category TEXT, unit TEXT, synonyms TEXT);
+CREATE TABLE IF NOT EXISTS stock(id INTEGER PRIMARY KEY AUTOINCREMENT, site TEXT, store TEXT, material_code TEXT, qty REAL, unit TEXT, reserved REAL, updated TEXT, source TEXT);
+CREATE TABLE IF NOT EXISTS usage(id INTEGER PRIMARY KEY AUTOINCREMENT, used_on TEXT, site TEXT, location TEXT, material_code TEXT, qty REAL, unit TEXT, work_order TEXT, source TEXT);
+CREATE TABLE IF NOT EXISTS stock_moves(id INTEGER PRIMARY KEY AUTOINCREMENT, case_id INTEGER, from_site TEXT, to_site TEXT, material_code TEXT, qty REAL, unit TEXT, status TEXT, ts TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS master_meta(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS inbox_seen(id TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS synonyms(word TEXT PRIMARY KEY, maps_to TEXT);
 CREATE TABLE IF NOT EXISTS item_choices(id INTEGER PRIMARY KEY AUTOINCREMENT, clean_req TEXT, code TEXT, project TEXT, who TEXT, ts TEXT DEFAULT CURRENT_TIMESTAMP);
@@ -54,6 +60,9 @@ def init(reset=False):
     if reset and Path(DB_PATH).exists():
         Path(DB_PATH).unlink()
     c = con(); c.executescript(SCHEMA)
+    from . import master
+    if c.execute("select count(*) from items").fetchone()[0] == 0 and master.PATH.exists():
+        c.commit(); c.close(); master.sync(); return
     if c.execute("select count(*) from items").fetchone()[0] == 0 and (SEED / "items.json").exists():
         for it in json.loads((SEED / "items.json").read_text()):
             c.execute("insert into items(code,descr) values(?,?)", (it["code"], it["desc"]))

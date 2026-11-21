@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block body %}
+<h1>Stock and usage</h1>
+<p class="sub">From the master workbook: what is held where, and what was used where. The agent checks it before buying and answers questions about it in chat.</p>
+<form method="get" class="card">Ask: <input type="text" name="q" value="{{q}}" placeholder="how much cement is left at Demo Heights?" style="width:60%"> <button>Ask</button>
+{% if q %}<pre style="margin-top:8px">{{ans or 'That does not look like a stock question about a catalogued material.'}}</pre>{% endif %}</form>
+<h2>Held now</h2>
+<table><tr><th>Site</th><th>Store</th><th>Material</th><th>On hand</th><th>Reserved</th><th>Free</th><th>Updated</th><th>Source</th></tr>
+{% for s in st %}<tr><td>{{s.site}}</td><td>{{s.store}}</td><td>{{s.name}}</td><td class="n">{{s.qty|inr}} {{s.unit}}</td><td class="n">{{s.reserved|inr}}</td><td class="n"><b>{{s.free|inr}}</b></td><td>{{s.updated}}</td><td class="mut">{{s.source}}</td></tr>{% endfor %}</table>
+<h2>Recent usage</h2>
+<table><tr><th>Date</th><th>Site</th><th>Where used</th><th>Material</th><th>Qty</th><th>Work order</th></tr>
+{% for u in us %}<tr><td>{{u.used_on}}</td><td>{{u.site}}</td><td>{{u.location}}</td><td>{{u.name}}</td><td class="n">{{u.qty|inr2}} {{u.unit}}</td><td>{{u.work_order}}</td></tr>{% endfor %}</table>
+{% if mv %}<h2>Transfer requests the agent recorded (the stores team executes them)</h2><table><tr><th>Case</th><th>From</th><th>To</th><th>Material</th><th>Qty</th><th>Status</th></tr>
+{% for m in mv %}<tr><td>{{m.case_id}}</td><td>{{m.from_site}}</td><td>{{m.to_site}}</td><td>{{m.material_code}}</td><td class="n">{{m.qty|inr}} {{m.unit}}</td><td>{{m.status}}</td></tr>{% endfor %}</table>{% endif %}
+{% endblock %}

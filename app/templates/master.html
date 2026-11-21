@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block body %}
+<h1>Master workbook</h1>
+<p class="sub">One Excel file is the editable source of truth: items, materials, stock by site, usage, vendors and vendor history. Edit it, upload it here, and the agent reloads it. API keys never go in it; they stay on the server.</p>
+{% if msg %}<div class="banner">{{msg}}</div>{% endif %}
+<div class="card"><b>Loaded:</b> {{path}} · at {{meta.loaded_at or '-'}} · file saved {{meta.erp_loaded or '-'}}<br>
+{% for k,v in counts.items() %}<span class="pill">{{k}} {{v}}</span> {% endfor %}
+<p><a class="btn" href="/master/download">Download the workbook (template)</a> <a class="btn" href="/master/download?current=1">Export current state (includes what the agent recorded)</a></p>
+<form method="post" action="/master/upload" enctype="multipart/form-data">Upload an edited workbook: <input type="file" name="file" accept=".xlsx" style="width:auto"> <button>Upload and reload</button></form>
+<p class="mut">A workbook with problems still loads; bad rows are skipped and listed below. Vendor addresses must be test addresses (@rfq-test.example); anything else is ignored.</p></div>
+<h2>Validation</h2>
+{% if issues %}<table><tr><th>Sheet</th><th>Row</th><th>Problem</th></tr>{% for i in issues %}<tr><td>{{i.sheet}}</td><td>{{i.row}}</td><td>{{i.problem}}</td></tr>{% endfor %}</table>{% else %}<p class="ok">No problems found.</p>{% endif %}
+<p class="mut">Demo rows tagged SYNTHETIC DEMO DATA are invented. Real stock and usage would come from the stores team's register.</p>
+{% endblock %}

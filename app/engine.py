@@ -5,7 +5,7 @@ import json, threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from rapidfuzz import fuzz
-from . import db, itemmatch, rfq, mailer, recommend
+from . import db, itemmatch, rfq, mailer, recommend, stock
 from .extract import extract_quote
 from .parse_req import parse, merge
 from .scoring import rank, reasons, W
@@ -159,7 +159,7 @@ def h_match(c):
     if st == "matched_high":
         d["item_code"] = top["code"]; itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r, "auto (confident, no conflict)", top["code"])
         log(cid, "agent", "matched", f"Confident match: {top['code']} ({top['description'][:60]}), confidence {top['confidence']}. {top['why']}. No conflicts, so no human needed; logged.", {"confidence": top["confidence"]})
-        _save(cid, "RFQ", None, d); return True
+        _save(cid, "STOCK", None, d); return True
     if st == "no_match":
         say(cid, "engineer", r["message"]); itemmatch.log_run(f"case-{cid}", "engineer", d["parsed"].get("project"), r)
         log(cid, "agent", "closed", "Nothing to match in that message; asked the engineer what is needed."); _save(cid, "DECIDED", None, d); return False
@@ -184,6 +184,30 @@ def h_match(c):
 
 
 def h_item_review(c): return False
+
+
+def h_stock(c):
+    """Before buying: is it already held, here or at another site? Work packages (supply and apply) skip this."""
+    cid, d = c["id"], c["data"]
+    if d.get("has_boq"): _save(cid, "RFQ", None, d); return True
+    chk = stock.check_request(d["parsed"], d["raw"])
+    if not chk["checked"]:
+        log(cid, "agent", "stock", f"Stock check skipped: {chk['why']}."); _save(cid, "RFQ", None, d); return True
+    m = chk["material"]; need = chk["need"]; site = chk["site"]; here = chk["here"]; others = chk["others"]
+    if not chk["holdings"] or (not here and not others):
+        log(cid, "agent", "stock", f"Checked stock for {m['name']} at {chk['sites_checked'] or 'all'} site(s): none free. Going to RFQ."); _save(cid, "RFQ", None, d); return True
+    if not chk["unit_ok"] or not need:
+        log(cid, "agent", "stock", f"{m['name']} is held (" + "; ".join(f"{k} {v:,.0f} {m['unit']}" for k, v in others.items()) + f") but the requested unit/quantity does not compare ({chk['uom'] or '?'} vs {m['unit']}). Going to RFQ; the HOD can still redirect."); _save(cid, "RFQ", None, d); return True
+    u = m["unit"]; opts = []
+    if here >= need:
+        msg = f"Stock check: {site} already holds {here:,.0f} {u} of {m['name']} free, and {need:,.0f} {u} is requested. Use the stock instead of buying?"
+        opts = [{"label": f"Use stock at {site}", "data": "stock:here"}, {"label": "Buy anyway (RFQ)", "data": "stock:buy"}]
+    else:
+        best = max(others, key=others.get); qty = min(need - here, others[best])
+        covered = "all" if here + qty >= need else "part"
+        msg = (f"Stock check for {need:,.0f} {u} of {m['name']}" + (f" at {site}" if site else "") + ": " + (f"{site} holds {here:,.0f} free. " if here else "") + "Other sites hold " + ", ".join(f"{k} {v:,.0f}" for k, v in others.items()) + f". I suggest requesting a transfer of {qty:,.0f} {u} from {best}" + (" (covers it all)." if covered == "all" else f", then an RFQ for the remaining {need - here - qty:,.0f} {u}.") + " I only recommend; I do not move stock.")
+        opts = [{"label": f"Transfer {qty:,.0f} {u} from {best}", "data": f"stock:move:{best}:{qty}"}, {"label": "Buy all (RFQ)", "data": "stock:buy"}]
+    say(cid, "hod", msg, opts); log(cid, "agent", "escalated", "Stock exists for this item; asked the HOD before buying: " + msg[:200]); _save(cid, "STOCK_REVIEW", "hod", d); return False
 
 
 def h_rfq(c):
@@ -260,7 +284,7 @@ def h_in_work(c):
     log(cid, "agent", "asked", "Work period elapsed: started the post-job check-in with the site engineer."); _save(cid, "CHECKIN", "engineer", d); return False
 
 
-HANDLERS = {"IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "MATCH_ASK": lambda c: False, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
+HANDLERS = {"STOCK": h_stock, "STOCK_REVIEW": lambda c: False, "IN_WORK": h_in_work, "CHECKIN": lambda c: False, "NEW": h_new, "CLARIFY": h_clarify, "MATCH": h_match, "MATCH_ASK": lambda c: False, "ITEM_REVIEW": h_item_review, "RFQ": h_rfq, "QUOTING": h_quoting, "COMPARE": h_compare, "AWAITING_HOD": lambda c: False, "DECIDED": lambda c: False}
 
 
 def advance(cid, max_steps=12):
@@ -303,7 +327,7 @@ def on_hod_action(cid, action: str):
             elif val == "new": d["item_code"] = (m.get("new_code_suggestion") or {}).get("code", "NEW"); itemmatch.remember(text, d["item_code"], who="HOD (new code, draft)")
             else: d["item_code"] = val; itemmatch.remember(text, val, d.get("parsed", {}).get("project"), "HOD")
             itemmatch.log_run(f"case-{cid}", "engineer", (d.get("parsed") or {}).get("project"), {"raw_text": text, "status": "human_choice", "candidates": m.get("candidates", []), "flags": m.get("flags", []), "erp_loaded": m.get("erp_loaded")}, "HOD", d["item_code"])
-            log(cid, "agent", "decided_item", f"Item code set to {d['item_code']} by the HOD; the choice is saved and will be used first next time the same wording comes in."); _save(cid, "RFQ", None, d)
+            log(cid, "agent", "decided_item", f"Item code set to {d['item_code']} by the HOD; the choice is saved and will be used first next time the same wording comes in."); _save(cid, "STOCK", None, d)
         elif kind == "decision" and c["state"] == "AWAITING_HOD":
             cn = db.con(); cn.execute("insert into decisions(tender,decision,note,recommended) values(?,?,?,?)", (f"case-{cid}", val, "via chat", d.get("recommended"))); cn.commit(); cn.close()
             if val == "send back":
@@ -316,6 +340,21 @@ def on_hod_action(cid, action: str):
             else:
                 _save(cid, "DECIDED", None, d); say(cid, "engineer", f"HOD decision on {d.get('recommended')}: {val}. (Recommendation only; ordering stays with Vinayak.)")
                 log(cid, "agent", "closed", f"Case closed with HOD decision: {val}.")
+        elif kind == "stock" and c["state"] == "STOCK_REVIEW":
+            parts = val.split(":"); chk = stock.check_request(d["parsed"], d["raw"]); m = chk.get("material")
+            if parts[0] == "buy":
+                log(cid, "agent", "decided_item", "HOD chose to buy; going to RFQ."); _save(cid, "RFQ", None, d)
+            elif parts[0] == "here":
+                say(cid, "engineer", f"HOD: use the stock already at {chk['site']} ({chk['here']:,.0f} {m['unit']}). No RFQ is needed."); log(cid, "agent", "closed", "Covered by stock already at the site; no purchase."); _save(cid, "DECIDED", None, d)
+            elif parts[0] == "move":
+                frm, qty = parts[1], float(parts[2]); need = chk["need"]
+                cn = db.con(); cn.execute("insert into stock_moves(case_id,from_site,to_site,material_code,qty,unit,status) values(?,?,?,?,?,?,?)", (cid, frm, chk["site"], m["code"], qty, m["unit"], "requested (HOD approved); stock not moved by the agent")); cn.commit(); cn.close()
+                log(cid, "agent", "stock", f"Transfer request recorded: {qty:,.0f} {m['unit']} of {m['name']} from {frm} to {chk['site'] or 'requesting site'}. The store keepers execute it; I do not move stock.")
+                rest = need - chk["here"] - qty
+                if rest > 0:
+                    d["parsed"]["quantity"] = rest; say(cid, "engineer", f"Transfer of {qty:,.0f} {m['unit']} from {frm} requested. I am raising an RFQ for the remaining {rest:,.0f} {m['unit']}."); _save(cid, "RFQ", None, d)
+                else:
+                    say(cid, "engineer", f"Transfer of {qty:,.0f} {m['unit']} from {frm} requested. That covers the requirement, so no RFQ."); log(cid, "agent", "closed", "Covered by an inter-site transfer request."); _save(cid, "DECIDED", None, d)
         elif kind == "checkin" and c["state"] == "CHECKIN":
             stage, _, ans = val.partition(":"); ck = d.setdefault("checkin", {}); ck[stage] = ans
             if stage == "t":
@@ -440,6 +479,9 @@ def engineer_inbound(text: str, channel="web", cid=None) -> int:
         c = _case(cid)
         if c["state"] in ("CLARIFY", "MATCH_ASK") and c["data"].get("asked_open"):
             on_engineer_message(cid, text); return cid
+    ans = stock.answer(text)
+    if ans:  # a question about stock, not a requirement: answer from the workbook, no case workflow
+        cid = new_case(text, channel); log(cid, "agent", "answered", "Answered a stock question from the master workbook."); say(cid, "engineer", ans); _save(cid, "DECIDED", None, None); return cid
     cid = new_case(text, channel); advance(cid); return cid
 
 

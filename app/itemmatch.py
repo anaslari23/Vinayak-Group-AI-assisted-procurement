@@ -77,8 +77,12 @@ class ErpList:
         for r in rows:
             r["title"] = clean(title_of(r["descr"])); r["fam"] = family_key(r["title"])
         self.rows = rows
+        try:
+            c = db.con(); m = c.execute("select value from master_meta where key='erp_loaded'").fetchone(); c.close()
+        except Exception:
+            m = None
         f = DATA_DIR / "items.json"
-        self.loaded = datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M") if f.exists() else "unknown"
+        self.loaded = m["value"] if m else (datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M") if f.exists() else "unknown")
         self.vocab = {w for r in rows for w in r["title"].split()} | set(_synonyms())
         by_code = defaultdict(list)
         for r in rows: by_code[r["code"]].append(r)

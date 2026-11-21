@@ -114,6 +114,14 @@ def reasons(r: dict, rows: list[dict]) -> list[str]:
         out.append("Payment terms not stated; baseline assumed.")
     if n["warranty_years"]:
         out.append(f"Offers {n['warranty_years']:g}-year warranty.")
+    try:
+        from . import stock
+        from .tender import TENDER
+        found, missing = stock.supplies_check(n["client_supplies"], stock.site_of(TENDER["project"]))
+        if found or missing:
+            out.append("Expects the client to supply " + ", ".join(found + missing) + ". Site store check: " + (f"holds {', '.join(found)}" if found else "nothing listed") + (f"; not in stock: {', '.join(missing)}" if missing else "") + ".")
+    except Exception:
+        pass
     if len(n["client_supplies"]) >= 8:
         out.append(f"Expects {len(n['client_supplies'])} client-supplied items free of cost (cost to Vinayak not priced here).")
     return out

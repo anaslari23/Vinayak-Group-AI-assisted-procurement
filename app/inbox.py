@@ -23,6 +23,13 @@ def poll():
         tag = re.search(r"\[Case #(\d+)\]", m["Subject"]); frm = m["From"]["Address"]
         if not tag or "+" not in frm: continue
         cid, key = int(tag.group(1)), frm.split("+")[1].split("@")[0]
+        try:  # ignore mail that is older than the case it claims to belong to (e.g. left over from an earlier run)
+            from datetime import datetime, timezone
+            sent = datetime.fromisoformat(m["Created"].replace("Z", "+00:00")).astimezone(timezone.utc).replace(tzinfo=None)
+            r = c.execute("select created from cases where id=?", (cid,)).fetchone()
+            if not r or sent < datetime.fromisoformat(r["created"]) - __import__("datetime").timedelta(seconds=30): continue
+        except Exception:
+            continue
         detail = httpx.get(f"{MAILPIT}/api/v1/message/{m['ID']}", timeout=10).json()
         try:
             atts = detail.get("Attachments") or []

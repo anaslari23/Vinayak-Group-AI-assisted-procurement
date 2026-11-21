@@ -20,7 +20,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("V", "Vendors", "/vendors"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
+STEPS = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master", "/master"), ("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
 @app.on_event("startup")
@@ -237,7 +237,7 @@ def eval_page(request: Request):
 
 # ---- the agent: cases
 from . import engine
-STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "MATCH_ASK": "asking the engineer about the item", "ITEM_REVIEW": "waiting for HOD (item code)", "RFQ": "sending RFQs",
+STATE_LABEL = {"NEW": "reading", "CLARIFY": "clarifying with engineer", "MATCH": "matching item code", "MATCH_ASK": "asking the engineer about the item", "ITEM_REVIEW": "waiting for HOD (item code)", "STOCK": "checking stock", "STOCK_REVIEW": "waiting for HOD (stock)", "RFQ": "sending RFQs",
                "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for HOD decision", "IN_WORK": "work in progress", "CHECKIN": "post-job check-in", "DECIDED": "closed"}
 T.env.globals["STATE_LABEL"] = STATE_LABEL
 
@@ -436,3 +436,49 @@ def erp_cleanup_csv():
 def synonyms_add(word: str = Form(...), maps_to: str = Form(...)):
     c = db.con(); c.execute("insert or replace into synonyms values(?,?)", (word.strip().lower(), maps_to.strip().lower())); c.commit(); c.close()
     return RedirectResponse("/erp-cleanup", 303)
+
+
+# ---- master workbook and stock
+from . import master, stock as stockmod
+
+
+@app.get("/master", response_class=HTMLResponse)
+def master_page(request: Request, msg: str = ""):
+    c = db.con(); counts = {t: c.execute(f"select count(*) from {t}").fetchone()[0] for t in ("sites", "items", "materials", "stock", "usage", "vendors", "vendor_history", "vendor_signals", "stock_moves")}
+    c.close()
+    try: _, issues = master.read()
+    except Exception as e: issues = [{"sheet": "-", "row": "-", "problem": f"could not read the workbook: {e}"}]
+    return page(request, "master.html", "M", counts=counts, issues=issues, meta=master.meta(), path=str(master.PATH.name), msg=msg)
+
+
+@app.post("/master/upload")
+async def master_upload(file: UploadFile = File(...)):
+    import shutil
+    data = await file.read()
+    tmp = master.PATH.with_suffix(".upload.xlsx"); tmp.write_bytes(data)
+    try:
+        master.read(tmp)
+    except Exception as e:
+        tmp.unlink(missing_ok=True); return RedirectResponse(f"/master?msg=Could+not+read+that+file:+{e}", 303)
+    if master.PATH.exists(): shutil.copy(master.PATH, master.PATH.with_suffix(".bak.xlsx"))
+    tmp.replace(master.PATH); r = master.sync()
+    return RedirectResponse(f"/master?msg=Loaded+{sum(r['counts'].values())}+rows,+{len(r['issues'])}+issue(s)", 303)
+
+
+@app.get("/master/download")
+def master_download(current: int = 0):
+    if current:
+        p = master.PATH.with_name("export_current.xlsx"); master.export(p)
+    else:
+        p = master.PATH
+    return StreamingResponse(open(p, "rb"), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename={'vinayak_master_current.xlsx' if current else 'vinayak_master.xlsx'}"})
+
+
+@app.get("/stock", response_class=HTMLResponse)
+def stock_page(request: Request, q: str = ""):
+    c = db.con()
+    st = [dict(r) for r in c.execute("select s.*, m.name from stock s join materials m on m.code=s.material_code order by s.site, m.name")]
+    us = [dict(r) for r in c.execute("select u.*, m.name from usage u join materials m on m.code=u.material_code order by u.used_on desc limit 20")]
+    mv = [dict(r) for r in c.execute("select * from stock_moves order by id desc limit 10")]; c.close()
+    for r in st: r["free"] = max(0, (r["qty"] or 0) - (r["reserved"] or 0))
+    return page(request, "stock.html", "S", st=st, us=us, mv=mv, q=q, ans=stockmod.answer(q) if q else None)
