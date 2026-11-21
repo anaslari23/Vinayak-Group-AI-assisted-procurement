@@ -7,3 +7,5 @@ __pycache__/
 data/private/
 vinayak-vch3-data*
 data/inbox/
+vonage_private.key
+*.key

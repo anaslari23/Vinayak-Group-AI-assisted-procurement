@@ -492,7 +492,10 @@ from . import call as callmod
 
 @app.get("/call", response_class=HTMLResponse)
 def call_page(request: Request):
-    return page(request, "call.html", "C", langs=voice.LANGS, plivo=bool(os.getenv("PLIVO_AUTH_ID") and os.getenv("PLIVO_FROM")), allowed=[x.strip() for x in os.getenv("PLIVO_ALLOWED_TO", "").split(",") if x.strip()])
+    vk = bool(os.getenv("VONAGE_APPLICATION_ID")); pk = bool(os.getenv("PLIVO_AUTH_ID") and os.getenv("PLIVO_FROM"))
+    prov = "vonage" if vk else ("plivo" if pk else "")
+    allowed = [x.strip() for x in os.getenv("VONAGE_ALLOWED_TO" if vk else "PLIVO_ALLOWED_TO", "").split(",") if x.strip()]
+    return page(request, "call.html", "C", langs=voice.LANGS, plivo=bool(prov), prov=prov, allowed=allowed)
 
 
 @app.post("/call/turn")
@@ -664,3 +667,90 @@ async def plivo_recording(request: Request, sid: str = ""):
         return _plivo_xml(f"<Play>{base}/call/audio/{sid}e{n}.wav</Play><Hangup/>")
     AUDIO[f"{sid}r{n}"] = voice.to_phone_wav(r["wav"])
     return _plivo_xml(f"<Play>{base}/call/audio/{sid}r{n}.wav</Play>" + ("<Hangup/>" if r["done"] else _plivo_record(base, sid)))
+
+
+# ---- Vonage: the AGENT CALLS the engineer's phone. Trial: calls to your registered number from a test caller ID.
+# Pattern: stream greeting -> record (event webhook) -> hold the line on silence -> when the turn is ready, TRANSFER the live call to a new NCCO. Built to Vonage's docs; first live call pending.
+VON: dict = {}
+
+
+def _vonage_jwt():
+    import jwt, time, uuid
+    key = Path(os.getenv("VONAGE_PRIVATE_KEY_PATH", str(ROOT.parent / "vonage_private.key"))).read_text()
+    return jwt.encode({"application_id": os.environ["VONAGE_APPLICATION_ID"], "iat": int(time.time()), "exp": int(time.time()) + 600, "jti": str(uuid.uuid4())}, key, algorithm="RS256")
+
+
+def _ncco_listen(base: str, sid: str, first: str):
+    """Play something, then record the caller; while we think, a silent loop holds the line until we transfer the call."""
+    return [{"action": "stream", "streamUrl": [first]},
+            {"action": "record", "format": "wav", "endOnSilence": 3, "beepStart": False, "timeOut": 30, "eventUrl": [f"{base}/telephony/vonage/recording?sid={sid}"], "eventMethod": "POST"},
+            {"action": "stream", "streamUrl": [f"{base}/call/audio/silence.wav"], "loop": 0}]
+
+
+@app.post("/telephony/vonage/call")
+async def vonage_call(request: Request, to: str = Form(...)):
+    import httpx, uuid
+    if not (os.getenv("VONAGE_APPLICATION_ID") and (Path(os.getenv("VONAGE_PRIVATE_KEY_PATH", str(ROOT.parent / "vonage_private.key"))).exists())):
+        return JSONResponse({"error": "Vonage is not configured (VONAGE_APPLICATION_ID and the private key file)."}, 400)
+    to = to.strip().replace(" ", "").lstrip("+")
+    allowed = [x.strip().replace(" ", "").lstrip("+") for x in os.getenv("VONAGE_ALLOWED_TO", "").split(",") if x.strip()]
+    if to not in allowed: return JSONResponse({"error": "That number is not on the allowed list (VONAGE_ALLOWED_TO). The agent only calls numbers you have allowed."}, 403)
+    sid = uuid.uuid4().hex[:10]; base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/")); VON[sid] = {"to": to}
+    if "greet" not in AUDIO:
+        AUDIO["greet"] = voice.to_phone_wav(await asyncio.to_thread(voice.tts, "नमस्ते, मैं विनायक ग्रुप का प्रोक्योरमेंट असिस्टेंट हूँ। बताइए, किस सामग्री की ज़रूरत है? आप किसी भी भाषा में बोल सकते हैं।", "hi-IN"))
+    AUDIO.setdefault("silence", voice.to_phone_wav(b"") if False else _silence())
+    body = {"to": [{"type": "phone", "number": to}], "from": {"type": "phone", "number": os.getenv("VONAGE_FROM", "123456789")},
+            "ncco": _ncco_listen(base, sid, f"{base}/call/audio/greet.wav"), "event_url": [f"{base}/telephony/vonage/event?sid={sid}"], "event_method": "POST"}
+    r = await asyncio.to_thread(lambda: httpx.post("https://api.nexmo.com/v1/calls", headers={"Authorization": "Bearer " + _vonage_jwt()}, json=body, timeout=30))
+    j = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"raw": r.text[:300]}
+    if r.status_code < 300: VON[sid]["uuid"] = j.get("uuid")
+    return JSONResponse({"status": r.status_code, "response": j}, 200 if r.status_code < 300 else 400)
+
+
+def _silence():
+    import struct, io, wave
+    b = io.BytesIO(); w = wave.open(b, "wb"); w.setnchannels(1); w.setsampwidth(2); w.setframerate(8000); w.writeframes(struct.pack("<h", 0) * 16000); w.close(); return b.getvalue()
+
+
+@app.post("/telephony/vonage/event")
+async def vonage_event(request: Request, sid: str = ""):
+    try: ev = await request.json()
+    except Exception: ev = {}
+    if sid in VON:
+        VON[sid].setdefault("events", []).append(ev.get("status") or ev.get("type")); VON[sid]["uuid"] = VON[sid].get("uuid") or ev.get("uuid")
+        if ev.get("status") in ("completed", "failed", "rejected", "busy", "unanswered"): print(f"[vonage] call {sid} {ev.get('status')}", flush=True)
+    return JSONResponse({})
+
+
+@app.post("/telephony/vonage/recording")
+async def vonage_recording(request: Request, sid: str = ""):
+    """Recording finished: run the turn in the background, then transfer the live call to the reply + the next listen."""
+    import httpx
+    if sid not in VON: return JSONResponse({}, 403)
+    ev = await request.json(); url = ev.get("recording_url"); base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    s = VON[sid]; s["n"] = s.get("n", 0) + 1; n = s["n"]
+
+    def transfer(ncco):
+        httpx.put(f"https://api.nexmo.com/v1/calls/{s['uuid']}", headers={"Authorization": "Bearer " + _vonage_jwt()}, json={"action": "transfer", "destination": {"type": "ncco", "ncco": ncco}}, timeout=30)
+
+    def work():
+        try:
+            audio = None
+            for _ in range(6):
+                r = httpx.get(url, headers={"Authorization": "Bearer " + _vonage_jwt()}, timeout=30, follow_redirects=True)
+                if r.status_code == 200 and len(r.content) > 500: audio = r.content; break
+                _time.sleep(1)
+            if audio is None: raise RuntimeError("recording not available")
+            r = callmod.turn(sid, audio, "call.wav")
+            if n == 1 and r.get("case_id"): engine.log(r["case_id"], "system", "call", f"Phone call to +{s['to']} (agent-initiated, Vonage)")
+            AUDIO[f"{sid}r{n}"] = voice.to_phone_wav(r["wav"]); play = f"{base}/call/audio/{sid}r{n}.wav"
+            transfer([{"action": "stream", "streamUrl": [play]}] + ([] if r["done"] else _ncco_listen(base, sid, f"{base}/call/audio/silence.wav")[1:]))
+            if r["done"]: s["done"] = True
+        except Exception as e:
+            print(f"[vonage] turn failed: {type(e).__name__}: {e}", flush=True)
+            try:
+                AUDIO[f"{sid}e{n}"] = voice.to_phone_wav(voice.tts("Sorry, something went wrong on my side. I will message you instead.", "en-IN"))
+                transfer([{"action": "stream", "streamUrl": [f"{base}/call/audio/{sid}e{n}.wav"]}])
+            except Exception: pass
+    threading.Thread(target=work, daemon=True).start()
+    return JSONResponse({})

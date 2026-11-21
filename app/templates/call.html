@@ -12,7 +12,7 @@
 <p class="mut" style="margin:4px 0">The agent will ring this number. Answer, then speak in any language. Only numbers you allowed can be called.</p>
 <input type="text" id="phone" value="{{allowed[0] if allowed else ''}}" placeholder="+91XXXXXXXXXX" style="width:60%"> <button id="ring">Call my phone</button> <span id="ringmsg" class="mut"></span></div>
 <script>document.getElementById('ring').onclick=async()=>{const m=document.getElementById('ringmsg');m.textContent='Calling…';const fd=new FormData();fd.append('to',document.getElementById('phone').value);
-const r=await fetch('/telephony/plivo/call',{method:'POST',body:fd});const j=await r.json();m.textContent=r.ok?'Ringing your phone now. Pick up and speak.':('Problem: '+(j.error||JSON.stringify(j.response)));};</script>{% endif %}
+const r=await fetch('/telephony/{{prov}}/call',{method:'POST',body:fd});const j=await r.json();m.textContent=r.ok?'Ringing your phone now. Pick up and speak.':('Problem: '+(j.error||JSON.stringify(j.response)));};</script>{% endif %}
 <div id="log" class="card" style="min-height:120px"></div>
 <script>
 const $=id=>document.getElementById(id);
