@@ -718,7 +718,7 @@ async def vonage_event(request: Request, sid: str = ""):
     except Exception: ev = {}
     if sid in VON:
         VON[sid].setdefault("events", []).append(ev.get("status") or ev.get("type")); VON[sid]["uuid"] = VON[sid].get("uuid") or ev.get("uuid")
-        if ev.get("status") in ("completed", "failed", "rejected", "busy", "unanswered"): print(f"[vonage] call {sid} {ev.get('status')}", flush=True)
+        if ev.get("status") in ("completed", "failed", "rejected", "busy", "unanswered", "timeout"): print(f"[vonage] call {sid} {ev.get('status')}: {json.dumps(ev)[:400]}", flush=True)
     return JSONResponse({})
 
 
