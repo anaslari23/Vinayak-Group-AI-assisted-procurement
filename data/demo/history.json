@@ -1,0 +1,48 @@
+{
+ "KALYANI": [
+  [
+   5,
+   1,
+   0,
+   0,
+   "Tower-A toilets, finish very good"
+  ],
+  [
+   4,
+   1,
+   0,
+   0,
+   "Podium waterproofing"
+  ],
+  [
+   5,
+   1,
+   4,
+   0,
+   "Terrace, 4 days late (rain)"
+  ]
+ ],
+ "RUPASHI": [
+  [
+   3,
+   0,
+   22,
+   1,
+   "Leakage callbacks in 2 flats"
+  ],
+  [
+   4,
+   1,
+   0,
+   0,
+   "Balcony work"
+  ],
+  [
+   3,
+   0,
+   15,
+   1,
+   "Measurement dispute on final bill"
+  ]
+ ]
+}

@@ -1,0 +1,97 @@
+{
+ "vendor_name": "Damodar Chemical Applicators",
+ "quote_date": "2026-11-09",
+ "validity_days": 45,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "inclusive"
+ },
+ "freight": {
+  "included": false,
+  "amount": 8000,
+  "note": "Mobilisation / freight Rs 8,000 lump sum extra"
+ },
+ "payment_terms": {
+  "advance_pct": null,
+  "credit_days": 45,
+  "text": "Running bills payable within 45 days of submission"
+ },
+ "start_days_after_order": 15,
+ "warranty_years": 5,
+ "client_supplies": [
+  "water",
+  "electricity",
+  "sand",
+  "cement"
+ ],
+ "other_terms": [
+  "Quotation is for Demo Heights, Tower-B waterproofing",
+  "Warranty of 5 years applies to the application"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQFT",
+   "quantity": 9850.0,
+   "rate": 43.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+   "unit": "SQFT",
+   "quantity": 8420.5,
+   "rate": 47.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 63.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+   "unit": "SQFT",
+   "quantity": 1320.75,
+   "rate": 43.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+   "unit": "SQFT",
+   "quantity": 1410.2,
+   "rate": 43.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+   "unit": "SQFT",
+   "quantity": 6230.4,
+   "rate": 47.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+   "unit": "SQFT",
+   "quantity": 1785.9,
+   "rate": 47.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

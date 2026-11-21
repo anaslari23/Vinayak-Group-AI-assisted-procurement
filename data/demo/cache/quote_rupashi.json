@@ -1,0 +1,89 @@
+{
+ "vendor_name": "RUPASHI WATERPROOFING WORKS",
+ "quote_date": "2026-10-14",
+ "validity_days": null,
+ "gstin": null,
+ "gst": {
+  "rate_pct": null,
+  "basis": "unstated"
+ },
+ "freight": {
+  "included": null,
+  "amount": null,
+  "note": null
+ },
+ "payment_terms": {
+  "advance_pct": null,
+  "credit_days": null,
+  "text": null
+ },
+ "start_days_after_order": null,
+ "warranty_years": null,
+ "client_supplies": [],
+ "other_terms": [],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQFT",
+   "quantity": 20400,
+   "rate": 33,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO",
+   "unit": "SQFT",
+   "quantity": 17500,
+   "rate": 33,
+   "rate_confidence": "high",
+   "note": "Item title is truncated in the document as printed."
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION C",
+   "unit": "RMT",
+   "quantity": 790,
+   "rate": 48,
+   "rate_confidence": "high",
+   "note": "Item title is truncated in the document as printed."
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA",
+   "unit": "SQFT",
+   "quantity": 2750,
+   "rate": 31,
+   "rate_confidence": "high",
+   "note": "Same title as sl 5; the printed text does not distinguish them (possibly floor vs wall)."
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA",
+   "unit": "SQFT",
+   "quantity": 2930,
+   "rate": 31,
+   "rate_confidence": "high",
+   "note": "Same title as sl 4; the printed text does not distinguish them."
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE,",
+   "unit": "SQFT",
+   "quantity": 12960,
+   "rate": 33,
+   "rate_confidence": "high",
+   "note": "Item title is truncated in the document as printed. Same title as sl 7."
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE,",
+   "unit": "SQFT",
+   "quantity": 3710,
+   "rate": 33,
+   "rate_confidence": "high",
+   "note": "Item title is truncated in the document as printed. Same title as sl 6."
+  }
+ ]
+}

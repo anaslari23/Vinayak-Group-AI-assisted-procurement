@@ -1,0 +1,494 @@
+{
+ "KALYANI": {
+  "date": "2026-11-12",
+  "validity": 60,
+  "gst": [
+   18,
+   "extra"
+  ],
+  "adv": 30,
+  "credit": 10,
+  "warranty": 5,
+  "start": 12,
+  "freight": null,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   9850.0,
+   8420.5,
+   380.0,
+   1320.75,
+   1410.2,
+   6230.4,
+   1785.9
+  ],
+  "rate": [
+   40,
+   40,
+   42,
+   40,
+   40,
+   40,
+   40
+  ],
+  "base": 1176670
+ },
+ "RUPASHI": {
+  "date": "2026-10-14",
+  "validity": null,
+  "gst": [
+   null,
+   "unstated"
+  ],
+  "adv": null,
+  "credit": null,
+  "warranty": null,
+  "start": null,
+  "freight": null,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   20400,
+   17500,
+   790,
+   2750,
+   2930,
+   12960,
+   3710
+  ],
+  "rate": [
+   33,
+   33,
+   48,
+   31,
+   31,
+   33,
+   33
+  ],
+  "base": 970364
+ },
+ "GANGA": {
+  "date": "2026-08-20",
+  "validity": 30,
+  "gst": [
+   18,
+   "extra"
+  ],
+  "adv": 25,
+  "credit": 30,
+  "warranty": 10,
+  "start": 14,
+  "freight": null,
+  "units": [
+   "SQM",
+   "SQM",
+   "RMT",
+   "SQM",
+   "SQM",
+   "SQM",
+   "SQM"
+  ],
+  "qty": [
+   1895.22,
+   1625.8,
+   790,
+   255.48,
+   272.21,
+   1204.02,
+   344.67
+  ],
+  "rate": [
+   410,
+   410,
+   62,
+   395,
+   395,
+   410,
+   410
+  ],
+  "base": 1125048
+ },
+ "TEESTA": {
+  "date": null,
+  "validity": null,
+  "gst": [
+   18,
+   "inclusive"
+  ],
+  "adv": null,
+  "credit": null,
+  "warranty": null,
+  "start": null,
+  "freight": 15000,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   20400,
+   17500,
+   790,
+   2750,
+   2930,
+   12960,
+   3710
+  ],
+  "rate": [
+   39,
+   39,
+   80,
+   36,
+   36,
+   39,
+   39
+  ],
+  "base": 992881
+ },
+ "MEGHNA": {
+  "date": "2026-11-03",
+  "validity": 30,
+  "gst": [
+   null,
+   "unstated"
+  ],
+  "adv": null,
+  "credit": 21,
+  "warranty": null,
+  "start": 7,
+  "freight": null,
+  "units": [
+   "SQM",
+   "SQM",
+   "RMT",
+   "SQM",
+   "SQM",
+   "SQM",
+   "SQM"
+  ],
+  "qty": [
+   915.09,
+   782.29,
+   380.0,
+   122.7,
+   131.01,
+   578.82,
+   165.92
+  ],
+  "rate": [
+   388,
+   388,
+   50,
+   388,
+   388,
+   388,
+   388
+  ],
+  "base": 1064985
+ },
+ "HOOGHLY": {
+  "date": "2026-11-03",
+  "validity": 30,
+  "gst": [
+   null,
+   "unstated"
+  ],
+  "adv": 10,
+  "credit": 45,
+  "warranty": null,
+  "start": 15,
+  "freight": null,
+  "units": [
+   "SQM",
+   "SQM",
+   "RMT",
+   "SQM",
+   "SQM",
+   "SQM",
+   "SQM"
+  ],
+  "qty": [
+   915.09,
+   782.29,
+   380.0,
+   122.7,
+   131.01,
+   578.82,
+   165.92
+  ],
+  "rate": [
+   344,
+   344,
+   45,
+   344,
+   344,
+   344,
+   344
+  ],
+  "base": 944468
+ },
+ "PADMA": {
+  "date": "2026-10-28",
+  "validity": 45,
+  "gst": [
+   18,
+   "extra"
+  ],
+  "adv": null,
+  "credit": 45,
+  "warranty": 3,
+  "start": 10,
+  "freight": null,
+  "units": [
+   "SQM",
+   "SQM",
+   "RMT",
+   "SQM",
+   "SQM",
+   "SQM",
+   "SQM"
+  ],
+  "qty": [
+   915.09,
+   782.29,
+   380.0,
+   122.7,
+   131.01,
+   578.82,
+   165.92
+  ],
+  "rate": [
+   388,
+   388,
+   50,
+   388,
+   388,
+   388,
+   388
+  ],
+  "base": 1064985
+ },
+ "DAMODAR": {
+  "date": "2026-11-09",
+  "validity": 45,
+  "gst": [
+   18,
+   "inclusive"
+  ],
+  "adv": null,
+  "credit": 45,
+  "warranty": 5,
+  "start": 15,
+  "freight": 8000,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   9850.0,
+   8420.5,
+   380.0,
+   1320.75,
+   1410.2,
+   6230.4,
+   1785.9
+  ],
+  "rate": [
+   43,
+   47,
+   63,
+   43,
+   43,
+   47,
+   47
+  ],
+  "base": 1141433
+ },
+ "SUBARNA": {
+  "date": "2026-10-28",
+  "validity": 45,
+  "gst": [
+   18,
+   "inclusive"
+  ],
+  "adv": 30,
+  "credit": 30,
+  "warranty": null,
+  "start": null,
+  "freight": 8000,
+  "units": [
+   "SQM",
+   "SQM",
+   "RMT",
+   "SQM",
+   "SQM",
+   "SQM",
+   "SQM"
+  ],
+  "qty": [
+   915.09,
+   782.29,
+   380.0,
+   122.7,
+   131.01,
+   578.82,
+   165.92
+  ],
+  "rate": [
+   484,
+   484,
+   63,
+   484,
+   484,
+   484,
+   484
+  ],
+  "base": 1134038
+ },
+ "TORSA": {
+  "date": "2026-10-28",
+  "validity": null,
+  "gst": [
+   18,
+   "extra"
+  ],
+  "adv": 20,
+  "credit": 30,
+  "warranty": 5,
+  "start": null,
+  "freight": 12000,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   9850.0,
+   8420.5,
+   380.0,
+   1320.75,
+   1410.2,
+   6230.4,
+   1785.9
+  ],
+  "rate": [
+   48,
+   50,
+   70,
+   50,
+   52,
+   48,
+   50
+  ],
+  "base": 1460147
+ },
+ "MAYURAKSHI": {
+  "date": "2026-11-09",
+  "validity": null,
+  "gst": [
+   18,
+   "extra"
+  ],
+  "adv": 30,
+  "credit": 45,
+  "warranty": 5,
+  "start": 7,
+  "freight": 12000,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   9850.0,
+   8420.5,
+   380.0,
+   1320.75,
+   1410.2,
+   6230.4,
+   1785.9
+  ],
+  "rate": [
+   38,
+   36,
+   50,
+   36,
+   34,
+   34,
+   34
+  ],
+  "base": 1076486
+ },
+ "AJAY": {
+  "date": "2026-11-03",
+  "validity": null,
+  "gst": [
+   18,
+   "inclusive"
+  ],
+  "adv": 10,
+  "credit": 21,
+  "warranty": 5,
+  "start": null,
+  "freight": null,
+  "units": [
+   "SQFT",
+   "SQFT",
+   "RMT",
+   "SQFT",
+   "SQFT",
+   "SQFT",
+   "SQFT"
+  ],
+  "qty": [
+   9850.0,
+   8420.5,
+   380.0,
+   1320.75,
+   1410.2,
+   6230.4,
+   1785.9
+  ],
+  "rate": [
+   45,
+   45,
+   63,
+   45,
+   45,
+   45,
+   45
+  ],
+  "base": 1126897
+ }
+}

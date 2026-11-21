@@ -1,0 +1,65 @@
+{
+ "id": "DEMO-TB-WP",
+ "project": "Demo Heights",
+ "package": "Waterproofing, Tower-B",
+ "synthetic": true,
+ "lines": [
+  {
+   "sl": 1,
+   "title": "Waterproofing at toilet floor",
+   "unit": "SQFT",
+   "qty": 9850.0,
+   "item_code": "WPD.01"
+  },
+  {
+   "sl": 2,
+   "title": "Waterproofing at toilet wall (up to 450 mm height)",
+   "unit": "SQFT",
+   "qty": 8420.5,
+   "item_code": "WPD.02"
+  },
+  {
+   "sl": 3,
+   "title": "Waterproofing on toilet depression channel",
+   "unit": "RMT",
+   "qty": 380.0,
+   "item_code": "WPD.03"
+  },
+  {
+   "sl": 4,
+   "title": "Waterproofing at kitchen & wash area, floor",
+   "unit": "SQFT",
+   "qty": 1320.75,
+   "item_code": "WPD.04"
+  },
+  {
+   "sl": 5,
+   "title": "Waterproofing at kitchen & wash area, wall",
+   "unit": "SQFT",
+   "qty": 1410.2,
+   "item_code": "WPD.05"
+  },
+  {
+   "sl": 6,
+   "title": "Waterproofing at balcony & terrace, floor",
+   "unit": "SQFT",
+   "qty": 6230.4,
+   "item_code": "WPD.06"
+  },
+  {
+   "sl": 7,
+   "title": "Waterproofing at balcony & terrace, wall",
+   "unit": "SQFT",
+   "qty": 1785.9,
+   "item_code": "WPD.07"
+  }
+ ],
+ "standard_terms": [
+  "PF & ESI registration is mandatory.",
+  "TDS will be deducted as per Government norms.",
+  "5% security deposit is released 12 months after completion.",
+  "GST will be paid extra, on the invoice.",
+  "Water and electricity at one point, and a labour hutment, are provided by the developer.",
+  "Safety PPE is the contractor's cost."
+ ]
+}

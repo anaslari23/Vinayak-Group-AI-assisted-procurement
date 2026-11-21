@@ -1,0 +1,95 @@
+{
+ "vendor_name": "Subarna Contractors",
+ "quote_date": "2026-10-28",
+ "validity_days": 45,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "inclusive"
+ },
+ "freight": {
+  "included": false,
+  "amount": 8000,
+  "note": "Mobilisation / freight Rs 8,000 lump sum extra"
+ },
+ "payment_terms": {
+  "advance_pct": 30,
+  "credit_days": 30,
+  "text": "30% advance along with the work order. Running bills payable within 30 days of submission."
+ },
+ "start_days_after_order": null,
+ "warranty_years": null,
+ "client_supplies": [
+  "scaffolding",
+  "water and electricity",
+  "sand"
+ ],
+ "other_terms": [
+  "Quotation is for Demo Heights, Waterproofing, Tower-B"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQM",
+   "quantity": 915.09,
+   "rate": 484.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+   "unit": "SQM",
+   "quantity": 782.29,
+   "rate": 484.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 63.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+   "unit": "SQM",
+   "quantity": 122.7,
+   "rate": 484.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+   "unit": "SQM",
+   "quantity": 131.01,
+   "rate": 484.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+   "unit": "SQM",
+   "quantity": 578.82,
+   "rate": 484.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+   "unit": "SQM",
+   "quantity": 165.92,
+   "rate": 484.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

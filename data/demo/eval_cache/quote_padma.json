@@ -1,0 +1,98 @@
+{
+ "vendor_name": "Padma Proofing Co.",
+ "quote_date": "2026-10-28",
+ "validity_days": 45,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "extra"
+ },
+ "freight": {
+  "included": null,
+  "amount": null,
+  "note": null
+ },
+ "payment_terms": {
+  "advance_pct": null,
+  "credit_days": 45,
+  "text": "Running bills payable within 45 days of submission."
+ },
+ "start_days_after_order": 10,
+ "warranty_years": 3,
+ "client_supplies": [
+  "cement",
+  "scaffolding",
+  "water",
+  "electricity"
+ ],
+ "other_terms": [
+  "Rates are against the client's quantities",
+  "Warranty of 3 years is on the application",
+  "Offer valid for 45 days from the date of quotation"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "Waterproofing at toilet floor",
+   "unit": "SQM",
+   "quantity": 915.09,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "Waterproofing at toilet wall (up to 450 mm height)",
+   "unit": "SQM",
+   "quantity": 782.29,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "Waterproofing on toilet depression channel",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 50.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "Waterproofing at kitchen & wash area, floor",
+   "unit": "SQM",
+   "quantity": 122.7,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "Waterproofing at kitchen & wash area, wall",
+   "unit": "SQM",
+   "quantity": 131.01,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "Waterproofing at balcony & terrace, floor",
+   "unit": "SQM",
+   "quantity": 578.82,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "Waterproofing at balcony & terrace, wall",
+   "unit": "SQM",
+   "quantity": 165.92,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

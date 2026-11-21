@@ -1,0 +1,97 @@
+{
+ "vendor_name": "Teesta Prevention & Cure Co.",
+ "quote_date": null,
+ "validity_days": null,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "inclusive"
+ },
+ "freight": {
+  "included": false,
+  "amount": 15000,
+  "note": "Mobilisation / freight Rs 15,000 lump sum extra"
+ },
+ "payment_terms": {
+  "advance_pct": null,
+  "credit_days": null,
+  "text": "Payment terms to be discussed."
+ },
+ "start_days_after_order": null,
+ "warranty_years": null,
+ "client_supplies": [
+  "cement",
+  "sand",
+  "scaffolding"
+ ],
+ "other_terms": [
+  "Rates are inclusive of GST @ 18%",
+  "Mobilisation / freight of Rs 15,000 is charged lump sum extra",
+  "Payment terms are not fixed; to be discussed"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "Waterproofing at toilet floor",
+   "unit": "SQFT",
+   "quantity": 20400,
+   "rate": 39,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "Waterproofing at toilet wall (up to 450 mm height)",
+   "unit": "SQFT",
+   "quantity": 17500,
+   "rate": 39,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "Waterproofing on toilet depression channel",
+   "unit": "RMT",
+   "quantity": 790,
+   "rate": 80,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "Waterproofing at kitchen & wash area, floor",
+   "unit": "SQFT",
+   "quantity": 2750,
+   "rate": 36,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "Waterproofing at kitchen & wash area, wall",
+   "unit": "SQFT",
+   "quantity": 2930,
+   "rate": 36,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "Waterproofing at balcony & terrace, floor",
+   "unit": "SQFT",
+   "quantity": 12960,
+   "rate": 39,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "Waterproofing at balcony & terrace, wall",
+   "unit": "SQFT",
+   "quantity": 3710,
+   "rate": 39,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

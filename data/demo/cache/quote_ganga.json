@@ -1,0 +1,101 @@
+{
+ "vendor_name": "GANGA DAMP-PROOF CONTRACTORS",
+ "quote_date": "2026-08-20",
+ "validity_days": 30,
+ "gstin": "19AAAAA0000A1Z5",
+ "gst": {
+  "rate_pct": 18,
+  "basis": "extra"
+ },
+ "freight": {
+  "included": null,
+  "amount": null,
+  "note": null
+ },
+ "payment_terms": {
+  "advance_pct": 25,
+  "credit_days": 30,
+  "text": "25% advance along with the work order. Running bills payable within 30 days of submission."
+ },
+ "start_days_after_order": 14,
+ "warranty_years": 10,
+ "client_supplies": [
+  "cement",
+  "sand",
+  "scaffolding",
+  "water",
+  "electricity"
+ ],
+ "other_terms": [
+  "GST @ 18% extra as applicable",
+  "Offer valid for 30 days from the date of quotation",
+  "10 year warranty on the application",
+  "Quote reference Q/GAN/26-27, subject: Waterproofing, Tower-B",
+  "No freight or mobilisation charge is mentioned"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQM",
+   "quantity": 1895.22,
+   "rate": 410.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+   "unit": "SQM",
+   "quantity": 1625.8,
+   "rate": 410.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+   "unit": "RMT",
+   "quantity": 790.0,
+   "rate": 62.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+   "unit": "SQM",
+   "quantity": 255.48,
+   "rate": 395.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+   "unit": "SQM",
+   "quantity": 272.21,
+   "rate": 395.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+   "unit": "SQM",
+   "quantity": 1204.02,
+   "rate": 410.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+   "unit": "SQM",
+   "quantity": 344.67,
+   "rate": 410.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

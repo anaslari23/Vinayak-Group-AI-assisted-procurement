@@ -1,0 +1,97 @@
+{
+ "vendor_name": "Ajay Aquaseal Agency",
+ "quote_date": "2026-11-03",
+ "validity_days": null,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "inclusive"
+ },
+ "freight": {
+  "included": null,
+  "amount": null,
+  "note": null
+ },
+ "payment_terms": {
+  "advance_pct": 10,
+  "credit_days": 21,
+  "text": "10% advance along with the work order. Running bills payable within 21 days of submission."
+ },
+ "start_days_after_order": null,
+ "warranty_years": 5,
+ "client_supplies": [
+  "water",
+  "electricity",
+  "scaffolding",
+  "sand"
+ ],
+ "other_terms": [
+  "Rates are inclusive of GST @ 18%",
+  "5 year warranty on the application"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQFT",
+   "quantity": 9850.0,
+   "rate": 45.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+   "unit": "SQFT",
+   "quantity": 8420.5,
+   "rate": 45.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 63.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+   "unit": "SQFT",
+   "quantity": 1320.75,
+   "rate": 45.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+   "unit": "SQFT",
+   "quantity": 1410.2,
+   "rate": 45.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+   "unit": "SQFT",
+   "quantity": 6230.4,
+   "rate": 45.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+   "unit": "SQFT",
+   "quantity": 1785.9,
+   "rate": 45.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

@@ -1,0 +1,98 @@
+{
+ "vendor_name": "Mayurakshi Builders & Waterproofers",
+ "quote_date": "2026-11-09",
+ "validity_days": null,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "extra"
+ },
+ "freight": {
+  "included": false,
+  "amount": 12000,
+  "note": "Mobilisation / freight Rs 12,000 lump sum extra"
+ },
+ "payment_terms": {
+  "advance_pct": 30,
+  "credit_days": 45,
+  "text": "30% advance along with the work order. Running bills payable within 45 days of submission."
+ },
+ "start_days_after_order": 7,
+ "warranty_years": 5,
+ "client_supplies": [
+  "scaffolding",
+  "water and electricity",
+  "sand"
+ ],
+ "other_terms": [
+  "GST @ 18% extra as applicable",
+  "Mobilisation / freight Rs 12,000 lump sum charged extra",
+  "Toilet wall waterproofing is up to 450 mm height",
+  "Date is printed as 09.11.2026 and read as DD.MM.YYYY (9 Nov 2026)"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "Waterproofing at toilet floor",
+   "unit": "SQFT",
+   "quantity": 9850.0,
+   "rate": 38.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "Waterproofing at toilet wall (up to 450 mm height)",
+   "unit": "SQFT",
+   "quantity": 8420.5,
+   "rate": 36.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "Waterproofing on toilet depression channel",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 50.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "Waterproofing at kitchen & wash area, floor",
+   "unit": "SQFT",
+   "quantity": 1320.75,
+   "rate": 36.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "Waterproofing at kitchen & wash area, wall",
+   "unit": "SQFT",
+   "quantity": 1410.2,
+   "rate": 34.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "Waterproofing at balcony & terrace, floor",
+   "unit": "SQFT",
+   "quantity": 6230.4,
+   "rate": 34.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "Waterproofing at balcony & terrace, wall",
+   "unit": "SQFT",
+   "quantity": 1785.9,
+   "rate": 34.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

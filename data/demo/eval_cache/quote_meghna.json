@@ -1,0 +1,93 @@
+{
+ "vendor_name": "Meghna Seal Works",
+ "quote_date": "2026-11-03",
+ "validity_days": 30,
+ "gstin": null,
+ "gst": {
+  "rate_pct": null,
+  "basis": "unstated"
+ },
+ "freight": {
+  "included": null,
+  "amount": null,
+  "note": null
+ },
+ "payment_terms": {
+  "advance_pct": null,
+  "credit_days": 21,
+  "text": "Running bills payable within 21 days of submission."
+ },
+ "start_days_after_order": 7,
+ "warranty_years": null,
+ "client_supplies": [
+  "cement",
+  "sand",
+  "scaffolding"
+ ],
+ "other_terms": [],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQM",
+   "quantity": 915.09,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+   "unit": "SQM",
+   "quantity": 782.29,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 50.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+   "unit": "SQM",
+   "quantity": 122.7,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+   "unit": "SQM",
+   "quantity": 131.01,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+   "unit": "SQM",
+   "quantity": 578.82,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+   "unit": "SQM",
+   "quantity": 165.92,
+   "rate": 388.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}

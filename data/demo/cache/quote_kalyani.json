@@ -1,0 +1,100 @@
+{
+ "vendor_name": "Kalyani Seal & Shield Pvt. Ltd.",
+ "quote_date": "2026-11-12",
+ "validity_days": 60,
+ "gstin": null,
+ "gst": {
+  "rate_pct": 18,
+  "basis": "extra"
+ },
+ "freight": {
+  "included": null,
+  "amount": null,
+  "note": null
+ },
+ "payment_terms": {
+  "advance_pct": 30,
+  "credit_days": 10,
+  "text": "30% advance along with the work order. Running bills payable within 10 days of submission."
+ },
+ "start_days_after_order": 12,
+ "warranty_years": 5,
+ "client_supplies": [
+  "cement",
+  "sand",
+  "scaffolding",
+  "water",
+  "electricity"
+ ],
+ "other_terms": [
+  "GST @ 18% extra as applicable",
+  "Offer valid for 60 days from the date of quotation",
+  "5 year warranty on the application",
+  "Quote date printed as 12.11.2026, read as day.month.year"
+ ],
+ "lines": [
+  {
+   "sl": 1,
+   "title": "WATERPROOFING AT TOILET FLOOR",
+   "unit": "SQFT",
+   "quantity": 9850.0,
+   "rate": 40.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 2,
+   "title": "WATERPROOFING AT TOILET WALL (UP TO 450 MM HEIGHT)",
+   "unit": "SQFT",
+   "quantity": 8420.5,
+   "rate": 40.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 3,
+   "title": "WATERPROOFING ON TOILET DEPRESSION CHANNEL",
+   "unit": "RMT",
+   "quantity": 380.0,
+   "rate": 42.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 4,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, FLOOR",
+   "unit": "SQFT",
+   "quantity": 1320.75,
+   "rate": 40.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 5,
+   "title": "WATERPROOFING AT KITCHEN & WASH AREA, WALL",
+   "unit": "SQFT",
+   "quantity": 1410.2,
+   "rate": 40.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 6,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, FLOOR",
+   "unit": "SQFT",
+   "quantity": 6230.4,
+   "rate": 40.0,
+   "rate_confidence": "high",
+   "note": null
+  },
+  {
+   "sl": 7,
+   "title": "WATERPROOFING AT BALCONY & TERRACE, WALL",
+   "unit": "SQFT",
+   "quantity": 1785.9,
+   "rate": 40.0,
+   "rate_confidence": "high",
+   "note": null
+  }
+ ]
+}
