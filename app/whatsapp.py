@@ -94,6 +94,9 @@ def inbound(p: dict) -> dict:
     return {"ok": True, "handled": handled}
 
 
+def own_waiting(jid, sender): return next((x for x in _cases_for(jid, sender) if x["waiting"] == "engineer"), None)
+
+
 def _route(p, jid, sender, name, body, addressed, kind, lang):
     admins = ADMINS.get(jid, []); is_admin = (not p.get("is_group")) or any(num(a) == num(sender) or num(a) == num(p.get("sender_alt", "x")) for a in admins) or os.getenv("WA_HOD_NUMBERS", "").find(num(sender)) >= 0
     mine = _cases_for(jid)
@@ -109,6 +112,8 @@ def _route(p, jid, sender, name, body, addressed, kind, lang):
         _queue(jid, "I track this group and handle procurement on my own. Just say what is needed (text or voice, any language), e.g. 'need 200 bags cement at Demo Greens by 5 Dec'. I ask what is missing, check stock and item codes, send RFQs, read the quotes and bring the admins one recommendation. Ask me 'how much cement is left at Demo Heights?' any time.", [sender]); return "help"
     if addressed and re.fullmatch(r"(status|summary|cases)", low):
         rows = _cases_for(jid); _queue(jid, "Cases from this group:\n" + ("\n".join(f"#{r['case_id']} ({r['sender_name']}): {engine.STATE_TEXT.get(r['state'], r['state'])}" for r in rows[:8]) or "none yet"), [sender]); return "status"
+    if re.search(r"\b(place|confirm|release|issue|approve)\b.{0,25}\b(order|po|payment)\b|\bpay\b|\badvance\b|\bpayment\b", low) and not own_waiting(jid, sender):
+        _queue(jid, "I can't place orders or make payments. I only recommend. Admins decide in this group, and orders and payments are done by your team in the ERP.", [sender]); return "refused order/payment"
     # 3. the sender's own open conversation (agent asked them something), or a check-in
     own = next((x for x in _cases_for(jid, sender) if x["waiting"] == "engineer"), None)
     if own:
