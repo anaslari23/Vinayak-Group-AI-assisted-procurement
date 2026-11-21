@@ -81,3 +81,6 @@ setInterval(async () => {
     if (done.length) await post('/whatsapp/ack', { ids: done })
   } catch {}
 }, 2000)
+
+// keep the app's connection panel truthful even if the app restarts
+setInterval(() => { if (ready && current) post('/whatsapp/status', { state: 'open', me: current.user?.id, lid: current.user?.lid }) }, 8000)
