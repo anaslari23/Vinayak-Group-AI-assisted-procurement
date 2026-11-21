@@ -31,6 +31,20 @@ A site engineer can **speak** a requirement in Hindi, Bengali, Tamil, Telugu, Ka
 - **Telegram:** send a voice note; the bot replies with text and a voice note in your language.
 - **Real phone calls (not demonstrated):** webhook adapters for Twilio (`/telephony/voice`), Plivo and Vonage (the agent calling the engineer's phone) are in the code. A simulated Twilio and Plivo call and a stubbed Vonage call pass, but **no live call was completed**: Twilio's account had no credit, Plivo asked for company KYC, and Vonage's free trial rejected the outbound call as `restricted` (it needs a paid account). So the voice flow is shown through the browser call page and Telegram voice notes.
 
+## WhatsApp group (the agent as a group member)
+
+The agent can sit in a WhatsApp group, **track every message**, and act on its own: it notices a requirement without being addressed (text or voice, any Indian language), asks the sender what is missing, reads voice requests back for a yes, checks stock in the master workbook, matches item codes, sends RFQs, reads the quotes and brings the **group admins** (the HOD role) one recommendation. An admin answers with a number or a word like "approve". Replies go back into the group in the sender's language, with a voice note for voice senders. Ask it "how much cement is left at Demo Heights?" and it answers from the workbook. Something addressed to it that is not a requirement gets one polite reply, not a case.
+
+**Honest status:** WhatsApp does not allow bots in ordinary groups, so this uses an **unofficial WhatsApp Web login** (Baileys, `whatsapp/`) on a spare number scanned by QR. That is against WhatsApp's terms and the number can be banned, so it is demo-only. It runs on a laptop, not on the hosted site. It was exercised live with one group, text and voice, a stock transfer decision by an admin, and Hindi replies.
+
+## Master workbook and stock
+
+`data/demo/vinayak_master.xlsx` is the editable source of truth (items, materials, stock by site and store, usage, vendors, vendor history). Edit it, upload it on `/master`, and the agent reloads it; bad rows are reported, never fatal, and vendor addresses can only be test addresses. Before buying, the agent checks whether the material is already held at another site and recommends a transfer request (it never moves stock). The `/stock` page shows what is held and used where.
+
+## No manual work
+
+Step pages are views of what the agent did; nothing needs pressing. In the synthetic demo there are no real vendors, so an autopilot (`DEMO_AUTOPILOT`, on by default for the demo data) plays them and the clock: it sends the vendor quote emails, lets the agent chase and clarify, then moves time on. The only humans in the loop are the ones the agent asks.
+
 ## Where it lives
 
 - **Telegram bot** (live): one bot, two roles. Everyone is a site engineer by default; `/hod` registers a chat as the HOD. Text and voice notes (Sarvam speech-to-text). Buttons are inline.
@@ -92,6 +106,8 @@ Open http://localhost:8000/sim. Run [Mailpit](https://mailpit.axllent.org) (`mai
 Claude (via OpenRouter) for quote reading, requirement structuring, merging vendor replies and the HOD note; Sarvam for speech-to-text; Claude Code for writing the code.
 
 ## Known limitations
+
+- The WhatsApp group bridge is unofficial, needs a spare number, and runs only on a local machine. Speech recognition can mishear numbers ("two hundred" came back as "friends" once); the read-back and confirm step is what catches that.
 
 - The phone-network adapters have never carried a live call (see above). Voice quality and language detection are as good as Sarvam's; heavy code-mixing or noisy sites will cause misreadings, which the read-back and confirm step is there to catch.
 
