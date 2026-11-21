@@ -73,3 +73,12 @@ def test_junk_gets_a_polite_reply_and_no_code(monkeypatch):
     monkeypatch.setattr(engine, "parse", lambda t: {"item_description": "hello", "category": "other", "project": None, "location": None, "quantity": None, "uom": None, "needed_by": None, "missing": []})
     cid = engine.new_case("hello"); engine.advance(cid)
     c = engine._case(cid); assert c["state"] in ("DECIDED", "CLARIFY")
+
+
+def test_open_request_duplicate_is_flagged(monkeypatch):
+    parsed = {"item_description": "toilet floor waterproofing", "category": "waterproofing", "project": "Aquina", "location": None, "quantity": 500, "uom": "sqft", "needed_by": "10 Dec", "missing": []}
+    monkeypatch.setattr(engine, "parse", lambda t: dict(parsed))
+    a = engine.new_case("toilet floor waterproofing 500 sqft"); engine.advance(a)       # first request waits for the HOD
+    b = engine.new_case("toilet floor waterproofing 520 sqft"); engine.advance(b)
+    flags = [f["flag"] for f in engine._case(b)["data"]["match"]["flags"]]
+    assert "open_request_duplicate" in flags

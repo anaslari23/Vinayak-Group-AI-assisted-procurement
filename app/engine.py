@@ -117,6 +117,22 @@ def _flag_text(r, n=3):
     return " | ".join(out[:n])
 
 
+def _open_duplicate(cid, d):
+    """Same project, a similar item and a similar quantity, in another case still open, opened in the last 7 days."""
+    from rapidfuzz import fuzz
+    p = d.get("parsed") or {}; proj = (p.get("project") or "").lower().strip()
+    if not proj: return None
+    c = db.con(); rows = c.execute("select id, data from cases where id<>? and state not in ('DECIDED') and created >= datetime('now','-7 days')", (cid,)).fetchall(); c.close()
+    for r in rows:
+        o = (json.loads(r["data"] or "{}").get("parsed") or {})
+        if (o.get("project") or "").lower().strip() != proj: continue
+        if fuzz.token_set_ratio(p.get("item_description") or "", o.get("item_description") or "") < 85: continue
+        q1, q2 = p.get("quantity"), o.get("quantity")
+        if q1 and q2 and not (0.8 <= q1 / q2 <= 1.25): continue
+        return r["id"]
+    return None
+
+
 def h_match(c):
     cid, d = c["id"], c["data"]
     if d.get("has_boq"):  # a whole BOQ package: the site sheet already names a code per line, so check each against the ERP
@@ -133,6 +149,10 @@ def h_match(c):
         log(cid, "agent", "escalated", f"{len(bad)} BOQ line(s) are not clean matches, so I asked the HOD."); _save(cid, "ITEM_REVIEW", "hod", d); return False
     text = d["parsed"].get("item_description") or d["raw"]
     r = itemmatch.match(text, unit=d["parsed"].get("uom"), quantity=d["parsed"].get("quantity"), project=d["parsed"].get("project"), request_id=f"case-{cid}")
+    dup = _open_duplicate(cid, d)
+    if dup:
+        r["flags"].append({"flag": "open_request_duplicate", "message": f"Similar request (case #{dup}) is already open for the same project. Merge or keep both?"})
+        if r["status"] == "matched_high": r["status"] = "needs_back_office_confirm"
     d["match"] = {k: r[k] for k in ("status", "candidates", "flags", "new_code_suggestion", "message", "questions_for_requester", "erp_loaded")}
     top = r["candidates"][0] if r["candidates"] else None
     st = r["status"]

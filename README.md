@@ -86,7 +86,7 @@ Claude (via OpenRouter) for quote reading, requirement structuring, merging vend
 ## Known limitations
 
 - Item matching is scored on a synthetic item list that carries the same kinds of mess as a real export; the cases were written by us. It covers one category (waterproofing); other categories need their own list, and Bengali needs a larger word table.
-- A message with several items is split by the matcher, but the agent flow processes one item (or one BOQ package) per case.
+- Open-request duplicates are checked on project, wording and quantity within 7 days (the test of the spec flag list is covered). A message with several items is split by the matcher, but the agent flow processes one item (or one BOQ package) per case.
 
 - The agent reads quotes and compares only for packages where it holds a BOQ. For a single-item requirement without a BOQ (for example the road-work demo) it stops after sending RFQs; generic quote reading is not built.
 - The eval set is small and generated, with clean layouts and one handwriting style. Real quotes will be messier; low-confidence reads are flagged and sent back to the vendor as questions instead of being trusted.
