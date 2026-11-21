@@ -237,7 +237,7 @@ def on_engineer_message(cid, text):
 def on_hod_action(cid, action: str):
     with _lock(cid):
         c = _case(cid); d = c["data"]; kind, _, val = action.partition(":")
-        log(cid, "hod", "action", f"HOD chose: {action}")
+        log(cid, "engineer" if kind == "checkin" else "hod", "action", f"{'Engineer' if kind == 'checkin' else 'HOD'} chose: {action}")
         if kind == "item" and c["state"] == "ITEM_REVIEW":
             d["item_code"] = (d["match"].get("suggested_code", {}).get("code") if val == "new" else val)
             log(cid, "agent", "decided_item", f"Item code set to {d['item_code']} by the HOD" + (" (new code, flagged ASSUMED numbering)" if val == "new" else "")); _save(cid, "RFQ", None, d)
@@ -248,7 +248,7 @@ def on_hod_action(cid, action: str):
                 log(cid, "agent", "note", "HOD sent it back. Re-opened quoting for 48 h; I will chase vendors for revised quotes.")
             elif val == "approve" and d.get("recommended_key"):
                 d["decided_at"] = now(c).isoformat(); _save(cid, "IN_WORK", None, d)
-                say(cid, "engineer", f"HOD approved {d.get('recommended')}. (Recommendation only; ordering stays with Vinayak.) When the work is done I will ask you two quick questions about delivery and quality, so the vendor's record is real next time.")
+                say(cid, "engineer", f"HOD approved {d.get('recommended')}. (Recommendation only; ordering stays with Vinayak.) When the work is done I will ask you three one-tap questions about delivery, quality and any issues, so the vendor's record is real next time.")
                 log(cid, "agent", "note", "Approved. Waiting for the work to complete; a post-job check-in with the site engineer follows.")
             else:
                 _save(cid, "DECIDED", None, d); say(cid, "engineer", f"HOD decision on {d.get('recommended')}: {val}. (Recommendation only; ordering stays with Vinayak.)")

@@ -89,10 +89,11 @@ def _poll():
             r = tg("getUpdates", offset=offset, timeout=25)
             for u in r.get("result", []):
                 offset = u["update_id"] + 1
+                print("telegram update:", json.dumps(u)[:200], flush=True)
                 try: handle_update(u)
-                except Exception as e: print("telegram handler error:", e)
+                except Exception as e: print("telegram handler error:", repr(e), flush=True)
         except Exception as e:
-            print("telegram poll error:", e); time.sleep(3)
+            print("telegram poll error:", repr(e), flush=True); time.sleep(3)
 
 
 def _deliver_loop():
