@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block body %}
 <h1>6 · Recommendation to the HOD</h1>
 <p class="sub">The agent emails the HOD (a test inbox) its recommendation with reasons and a signed link. The link opens a confirmation page; nothing is ordered, awarded or paid by this system.</p>
-<div class="card">Current recommendation: <b>{{top.n.vendor}}</b> (score {{top.total|round(1)}}). <form method="post" action="/hod/send" style="display:inline"><button>Send recommendation to HOD</button></form> <a href="/compare">see reasons</a></div>
+<div class="card">Current recommendation: <b>{{top.n.vendor}}</b> (score {{top.total|round(1)}}). <span class="mut">The agent sends this to the HOD by itself.</span> <a href="/compare">see reasons</a></div>
 {% if log %}<h2>Sent to the HOD test inbox</h2>{% for l in log %}<div class="card"><b>{{l.subject}}</b> <span class="pill">{{l.status}}</span><pre>{{l.body}}</pre></div>{% endfor %}{% endif %}
 {% if dec %}<h2>HOD decisions recorded</h2><table><tr><th>Decision</th><th>Recommended vendor</th><th>Note</th><th>When</th></tr>{% for d in dec %}<tr><td><b>{{d.decision}}</b></td><td>{{d.recommended}}</td><td>{{d.note}}</td><td>{{d.created}}</td></tr>{% endfor %}</table>{% endif %}
 {% endblock %}

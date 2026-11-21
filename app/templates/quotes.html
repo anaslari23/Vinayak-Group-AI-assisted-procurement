@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block body %}
 <h1>4 · Vendor quotes, read and normalised</h1>
 <p class="sub">Four vendors, four layouts (clean PDF, letterhead PDF, a handwritten scan, a vendor with no payment terms). Claude reads each file; code then re-prices everything at the <b>tender</b> quantities and units. Rates in the table are Rs per tender unit.</p>
-<form method="post" action="/quotes/upload" enctype="multipart/form-data" class="card"><b>Add a quote</b> (PDF, image or Excel): <input type="file" name="file" style="width:auto"> <button>Read it</button></form>
+<div class="banner">Automatic: quotes arrive as emails (PDF, scan or text); the agent reads each one, asks the vendor about anything unclear, and re-prices it. Nobody uploads anything.</div>
 <table><tr><th>Item (tender)</th><th>Tender qty</th>{% for r in rows %}<th>{{r.n.vendor}}</th>{% endfor %}</tr>
 {% for tl in tender.lines %}<tr><td>{{tl.sl}}. {{tl.title}}</td><td class="n">{{tl.qty|inr2}} {{tl.unit}}</td>
 {% for r in rows %}{% set l=r.n.lines[loop.index0 if false else tl.sl-1] %}<td class="n">{{l.rate|inr2}}{% if l.flags %}<div class="mut" style="text-align:left;font-size:12px">{% for f in l.flags %}⚑ {{f}}<br>{% endfor %}</div>{% endif %}</td>{% endfor %}</tr>{% endfor %}

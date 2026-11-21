@@ -15,4 +15,4 @@
 <tr><td>Advance financing (modelled)</td>{% for r in rows %}<td class="n">{{r.n.advance_cost|inr}}</td>{% endfor %}</tr><tr><td>Faster-than-30-day payment (modelled)</td>{% for r in rows %}<td class="n">{{r.n.float_cost|inr}}</td>{% endfor %}</tr>
 <tr><th>Landed</th>{% for r in rows %}<th class="n">{{r.n.landed|inr}}</th>{% endfor %}</tr></table>
 <p class="mut">Assumptions (editable in code): cost of capital {{assump.cost_of_capital_pct}}% p.a., advance outstanding for about half of a {{assump.project_months}}-month project, 30-day baseline credit, GST {{assump.gst_default_pct}}% where unstated. Client-supplied materials are listed but not priced.</p>
-<p><a class="btn" href="/hod">Next: send to the HOD</a></p>{% endblock %}
+<p class="mut">The agent sends this recommendation to the HOD by itself when the comparison is complete. <a href="/hod">See what it sent</a>.</p>{% endblock %}

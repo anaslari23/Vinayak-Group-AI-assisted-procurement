@@ -11,6 +11,7 @@ from .parse_req import parse, merge
 from .scoring import rank, reasons, W
 from .tender import TENDER, DATA_DIR
 
+STATE_TEXT = {"NEW": "reading", "CLARIFY": "asking the requester", "CONFIRM": "confirming", "MATCH": "matching the item code", "MATCH_ASK": "asking about the item", "ITEM_REVIEW": "waiting for the admins (item code)", "STOCK": "checking stock", "STOCK_REVIEW": "waiting for the admins (stock)", "RFQ": "sending RFQs", "QUOTING": "collecting quotes", "COMPARE": "comparing", "AWAITING_HOD": "waiting for the admins' decision", "IN_WORK": "work in progress", "CHECKIN": "post-job check-in", "DECIDED": "closed"}
 RFQ_HOURS = 48
 CHASE_HOURS = 24
 _locks: dict = {}

@@ -9,3 +9,5 @@ vinayak-vch3-data*
 data/inbox/
 vonage_private.key
 *.key
+whatsapp/auth/
+whatsapp/node_modules/

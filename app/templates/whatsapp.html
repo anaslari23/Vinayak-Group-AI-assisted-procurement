@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block body %}
+{% if st.state!='open' %}<meta http-equiv="refresh" content="4">{% endif %}
+<h1>WhatsApp groups</h1>
+<p class="sub">The agent sits in a WhatsApp group like any member. It tracks every message, notices requirements on its own (text or voice, any language), takes them forward, asks the sender what is missing, and brings the group admins the decision. Nobody has to type a command.</p>
+<div class="banner"><b>Unofficial connection.</b> WhatsApp does not allow bots in ordinary groups, so this logs in as a normal WhatsApp account (a spare number, scanned once by QR). That is against WhatsApp's terms and the number can be banned: demo use only.</div>
+<div class="card"><b>Connection:</b> <span class="pill {{'ok' if st.state=='open' else 'warn'}}">{{st.state}}</span> {% if st.me %}<span class="mut">as {{st.me}}</span>{% endif %}
+{% if st.state=='qr' and st.qr %}<p>Scan with the spare number: WhatsApp → Settings → Linked devices → Link a device.</p><img src="{{st.qr}}" alt="QR" style="width:260px;height:260px">{% elif st.state!='open' %}<p class="mut">Start the bridge on this computer: <code>cd whatsapp && node bridge.mjs</code>. The QR code appears here.</p>{% else %}<p class="mut">Add this number to a group. Make the people who decide purchases group admins: they are the HOD role.</p>{% endif %}</div>
+<h2>Groups being tracked</h2>
+<table><tr><th>Group</th><th>Messages tracked</th><th>Requirements raised by the agent</th><th>Last message</th></tr>
+{% for g in groups %}<tr><td>{{g.group_name or g.jid}}</td><td class="n">{{g.n}}</td><td class="n">{{g.raised or 0}}</td><td>{{g.last}}</td></tr>{% else %}<tr><td colspan="4" class="mut">No group messages yet.</td></tr>{% endfor %}</table>
+<h2>Cases from WhatsApp</h2>
+<table><tr><th>Case</th><th>Raised by</th><th>Language</th><th>State</th></tr>
+{% for c in cases %}<tr><td><a href="/cases/{{c.case_id}}">#{{c.case_id}}</a></td><td>{{c.sender_name}}</td><td>{{c.lang}}</td><td>{{STATE_LABEL.get(c.state, c.state)}}</td></tr>{% else %}<tr><td colspan="4" class="mut">None yet.</td></tr>{% endfor %}</table>
+<h2>What the agent saw</h2>
+<table><tr><th>When</th><th>Who</th><th>Message</th><th>What the agent did</th></tr>
+{% for m in msgs %}<tr><td>{{m.ts}}</td><td>{{m.sender_name}}</td><td>{{(m.text or '')[:140]}}{% if m.kind=='voice' %} <span class="pill">voice</span>{% endif %}</td><td>{{m.handled or '-'}}</td></tr>{% else %}<tr><td colspan="4" class="mut">Nothing yet.</td></tr>{% endfor %}</table>
+{% endblock %}

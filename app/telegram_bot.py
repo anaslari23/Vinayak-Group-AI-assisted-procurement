@@ -78,7 +78,10 @@ def deliver():
     """Push queued agent messages to Telegram. Engineer messages go to the chat that owns the case; HOD messages to the registered HOD chat."""
     c = db.con(); pending = [dict(r) for r in c.execute("select * from chat_messages where sent=0 order by id")]
     hod = c.execute("select chat_id from chats where role='hod' order by rowid desc limit 1").fetchone()
+    wa = {r[0] for r in c.execute('select case_id from wa_cases')}
     for m in pending:
+        if m["case_id"] in wa:   # WhatsApp cases are delivered by the WhatsApp bridge
+            c.execute('update chat_messages set sent=2 where id=?', (m['id'],)); continue
         target = None
         if m["to_role"] == "hod" and hod: target = hod["chat_id"]
         elif m["to_role"] == "engineer":

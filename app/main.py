@@ -21,7 +21,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-NAV = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
+NAV = [("A", "Agent", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("W", "WhatsApp", "/whatsapp"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
 STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
@@ -755,3 +755,47 @@ async def vonage_recording(request: Request, sid: str = ""):
             except Exception: pass
     threading.Thread(target=work, daemon=True).start()
     return JSONResponse({})
+
+
+
+# ---- WhatsApp group bridge (Baileys sidecar in /whatsapp talks to these)
+from . import whatsapp as wa
+
+
+def _bridge_ok(request: Request):
+    k = os.getenv("WA_BRIDGE_KEY", "")
+    return bool(k) and request.headers.get("x-bridge-key") == k
+
+
+@app.post("/whatsapp/inbound")
+async def wa_inbound(request: Request):
+    if not _bridge_ok(request): return JSONResponse({"error": "forbidden"}, 403)
+    p = await request.json()
+    return await asyncio.to_thread(wa.inbound, p)
+
+
+@app.get("/whatsapp/outbox")
+async def wa_outbox(request: Request):
+    if not _bridge_ok(request): return JSONResponse({"error": "forbidden"}, 403)
+    return {"items": await asyncio.to_thread(wa.outbox)}
+
+
+@app.post("/whatsapp/ack")
+async def wa_ack(request: Request):
+    if not _bridge_ok(request): return JSONResponse({"error": "forbidden"}, 403)
+    wa.ack((await request.json()).get("ids", [])); return {"ok": True}
+
+
+@app.post("/whatsapp/status")
+async def wa_status(request: Request):
+    if not _bridge_ok(request): return JSONResponse({"error": "forbidden"}, 403)
+    j = await request.json(); wa.STATUS.update({"state": j.get("state"), "qr": j.get("qr") if j.get("state") == "qr" else None, "me": j.get("me") or wa.STATUS.get("me")}); return {"ok": True}
+
+
+@app.get("/whatsapp", response_class=HTMLResponse)
+def wa_page(request: Request):
+    c = db.con()
+    groups = [dict(r) for r in c.execute("select jid, group_name, count(*) n, sum(handled like 'raised%' or handled like 'noticed%') raised, max(ts) last from wa_messages where jid like '%@g.us' group by jid order by last desc")]
+    msgs = [dict(r) for r in c.execute("select * from wa_messages order by id desc limit 25")]
+    cases = [dict(r) for r in c.execute("select w.*, c.state, c.waiting from wa_cases w join cases c on c.id=w.case_id order by w.case_id desc limit 10")]; c.close()
+    return page(request, "whatsapp.html", "W", st=wa.STATUS, groups=groups, msgs=msgs, cases=cases)
