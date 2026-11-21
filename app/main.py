@@ -492,7 +492,7 @@ from . import call as callmod
 
 @app.get("/call", response_class=HTMLResponse)
 def call_page(request: Request):
-    return page(request, "call.html", "C", langs=voice.LANGS)
+    return page(request, "call.html", "C", langs=voice.LANGS, plivo=bool(os.getenv("PLIVO_AUTH_ID") and os.getenv("PLIVO_FROM")), allowed=[x.strip() for x in os.getenv("PLIVO_ALLOWED_TO", "").split(",") if x.strip()])
 
 
 @app.post("/call/turn")
@@ -598,3 +598,69 @@ async def tel_poll(request: Request, sid: str, n: int):
         return _twiml(_play(f"{sid}e{n}", voice.tts("Sorry, something went wrong on my side. Please call again.", "en-IN"), base) + "<Hangup/>")
     play = _play(f"{sid}r{n}", r["wav"], base)
     return _twiml(play + ("<Hangup/>" if r["done"] else _record(base)))
+
+
+# ---- Plivo: the AGENT CALLS the engineer's phone (free trial can call verified numbers). Built to Plivo's documented XML/REST; first live call pending.
+PLIVO_SESS: dict = {}
+
+
+def _plivo_xml(body: str):
+    from fastapi.responses import Response
+    return Response(f'<?xml version="1.0" encoding="UTF-8"?><Response>{body}</Response>', media_type="application/xml")
+
+
+def _plivo_record(base: str, sid: str):
+    return f'<Record action="{base}/telephony/plivo/recording?sid={sid}" method="POST" maxLength="30" timeout="4" playBeep="false" redirect="true" fileFormat="wav"/>'
+
+
+@app.post("/telephony/plivo/call")
+async def plivo_call(request: Request, to: str = Form(...)):
+    import httpx
+    aid, tok, frm = os.getenv("PLIVO_AUTH_ID"), os.getenv("PLIVO_AUTH_TOKEN"), os.getenv("PLIVO_FROM")
+    if not (aid and tok and frm): return JSONResponse({"error": "Plivo is not configured (PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN, PLIVO_FROM)."}, 400)
+    to = to.strip().replace(" ", "")
+    allowed = [x.strip().replace(" ", "") for x in os.getenv("PLIVO_ALLOWED_TO", "").split(",") if x.strip()]
+    if to not in allowed: return JSONResponse({"error": "That number is not on the allowed list (PLIVO_ALLOWED_TO). The agent only calls numbers you have allowed."}, 403)
+    import uuid
+    sid = uuid.uuid4().hex[:10]; base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/")); PLIVO_SESS[sid] = {"to": to}
+    r = await asyncio.to_thread(lambda: httpx.post(f"https://api.plivo.com/v1/Account/{aid}/Call/", auth=(aid, tok), timeout=30,
+                                                    json={"from": frm, "to": to, "answer_url": f"{base}/telephony/plivo/answer?sid={sid}", "answer_method": "POST", "time_limit": 600}))
+    return JSONResponse({"status": r.status_code, "response": r.json() if r.headers.get("content-type", "").startswith("application/json") else r.text[:300]}, 200 if r.status_code < 300 else 400)
+
+
+@app.api_route("/telephony/plivo/answer", methods=["GET", "POST"])
+async def plivo_answer(request: Request, sid: str = ""):
+    if sid not in PLIVO_SESS: return HTMLResponse("unknown call", 403)
+    base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    if "greet" not in AUDIO:
+        AUDIO["greet"] = voice.to_phone_wav(await asyncio.to_thread(voice.tts, "नमस्ते, मैं विनायक ग्रुप का प्रोक्योरमेंट असिस्टेंट हूँ। बताइए, किस सामग्री की ज़रूरत है? आप किसी भी भाषा में बोल सकते हैं।", "hi-IN"))
+    return _plivo_xml(f"<Play>{base}/call/audio/greet.wav</Play>{_plivo_record(base, sid)}")
+
+
+@app.api_route("/telephony/plivo/recording", methods=["GET", "POST"])
+async def plivo_recording(request: Request, sid: str = ""):
+    import httpx
+    if sid not in PLIVO_SESS: return HTMLResponse("unknown call", 403)
+    form = await request.form() if request.method == "POST" else {}
+    url = str(form.get("RecordUrl") or request.query_params.get("RecordUrl") or ""); base = os.getenv("PUBLIC_URL", str(request.base_url).rstrip("/"))
+    s = PLIVO_SESS[sid]; s["n"] = s.get("n", 0) + 1; n = s["n"]
+    if not url:
+        AUDIO[f"{sid}m{n}"] = voice.to_phone_wav(await asyncio.to_thread(voice.tts, "Sorry, I did not hear anything. Please say it again.", "en-IN"))
+        return _plivo_xml(f"<Play>{base}/call/audio/{sid}m{n}.wav</Play>{_plivo_record(base, sid)}")
+    def work():
+        audio = None
+        for _ in range(6):                      # the recording file can take a moment to become available
+            r = httpx.get(url, timeout=30, follow_redirects=True)
+            if r.status_code == 200 and len(r.content) > 500: audio = r.content; break
+            _time.sleep(1)
+        if audio is None: raise RuntimeError("recording not available")
+        r = callmod.turn(sid, audio, "call.wav")
+        if n == 1 and r.get("case_id"): engine.log(r["case_id"], "system", "call", f"Phone call to {s['to']} (agent-initiated, Plivo)")
+        return r
+    try:
+        r = await asyncio.to_thread(work)
+    except Exception as e:
+        AUDIO[f"{sid}e{n}"] = voice.to_phone_wav(await asyncio.to_thread(voice.tts, "Sorry, something went wrong on my side. I will message you instead.", "en-IN"))
+        return _plivo_xml(f"<Play>{base}/call/audio/{sid}e{n}.wav</Play><Hangup/>")
+    AUDIO[f"{sid}r{n}"] = voice.to_phone_wav(r["wav"])
+    return _plivo_xml(f"<Play>{base}/call/audio/{sid}r{n}.wav</Play>" + ("<Hangup/>" if r["done"] else _plivo_record(base, sid)))
