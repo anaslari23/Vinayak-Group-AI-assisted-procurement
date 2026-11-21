@@ -63,6 +63,10 @@ def init(reset=False):
     if reset and Path(DB_PATH).exists():
         Path(DB_PATH).unlink()
     c = con(); c.executescript(SCHEMA)
+    for tbl, col, typ in (("wa_out", "claimed_at", "TEXT"), ("chat_messages", "wa_sent", "INT DEFAULT 0"), ("vendor_history", "origin", "TEXT DEFAULT 'agent'"), ("vendor_signals", "origin", "TEXT DEFAULT 'agent'")):
+        try: c.execute(f"alter table {tbl} add column {col} {typ}")   # older databases get new columns without a reset
+        except Exception: pass
+    c.commit()
     from . import master
     if c.execute("select count(*) from items").fetchone()[0] == 0 and master.PATH.exists():
         c.commit(); c.close(); master.sync(); return

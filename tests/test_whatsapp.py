@@ -72,3 +72,10 @@ def test_each_reply_is_served_once_even_if_the_bridge_polls_again_before_acking(
     c = db.con(); c.execute("update wa_out set claimed_at=datetime('now','-120 seconds') where sent=2"); c.commit(); c.close()
     again = wa.outbox(); assert [o["id"] for o in again] == [o["id"] for o in first]      # a claim that was never acked is retried after 90 s
     wa.ack([o["id"] for o in again]); assert wa.outbox() == []
+
+
+def test_an_older_database_gets_the_new_columns(tmp_path, monkeypatch):
+    import sqlite3
+    f = tmp_path / "old.db"; c = sqlite3.connect(f); c.execute("create table wa_out(id integer primary key autoincrement, jid text, text text, mentions text, ogg_b64 text, sent integer default 0, ts text)"); c.commit(); c.close()
+    monkeypatch.setattr(db, "DB_PATH", str(f)); db.init()
+    cols = {r[1] for r in sqlite3.connect(f).execute("pragma table_info(wa_out)")}; assert "claimed_at" in cols
