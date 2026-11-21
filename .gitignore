@@ -1,9 +1,8 @@
+*.db
+*.pyc
+.DS_Store
 .env
 .venv/
 __pycache__/
-*.pyc
-.DS_Store
+data/private/
 vinayak-vch3-data*
-*.db
-data/cache/
-data/seed/

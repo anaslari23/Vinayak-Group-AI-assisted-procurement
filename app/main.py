@@ -18,7 +18,8 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 T = Jinja2Templates(directory=ROOT / "templates")
 T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
-CACHE = ROOT.parent / "data" / "cache"
+from .tender import DATA_DIR
+CACHE = DATA_DIR / "cache"
 STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 
@@ -222,4 +223,5 @@ def mail(request: Request):
 @app.get("/eval", response_class=HTMLResponse)
 def eval_page(request: Request):
     from .evalq import run
-    return page(request, "eval.html", "", res=run(all_quotes()))
+    qs = [json.loads(f.read_text()) for d in ("cache", "eval_cache") for f in sorted((DATA_DIR / d).glob("*.json"))]
+    return page(request, "eval.html", "", res=run(qs), synthetic=TENDER.get("synthetic"))

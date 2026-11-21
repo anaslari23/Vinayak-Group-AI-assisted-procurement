@@ -4,7 +4,7 @@ from rapidfuzz import fuzz
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = os.getenv("DB_PATH", str(ROOT / "data" / "app.db"))
-SEED = ROOT / "data" / "seed"
+from .tender import DATA_DIR as SEED
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items(code TEXT, descr TEXT, source TEXT DEFAULT 'ERP export (data pack)');
@@ -17,13 +17,14 @@ CREATE TABLE IF NOT EXISTS quotes(vendor_key TEXT PRIMARY KEY, source_file TEXT,
 CREATE TABLE IF NOT EXISTS decisions(id INTEGER PRIMARY KEY AUTOINCREMENT, tender TEXT, decision TEXT, note TEXT, recommended TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
 """
 
-# Waterproofing-relevant names from the contractor list: category is OUR GUESS from the name (list has names only)
-_WP_HINT = ("PURVYAKRUTI", "PLASTICHEM", "WATERLAND", "S K CONSTRUCTION", "SAVE EARTH")
-# SYNTHETIC demo history. The pack has no performance records. Labelled as such everywhere it is shown.
-HISTORY = {
-    "PURVYAKRUTI": [(5, 1, 0, 0, "Mock-up floor, finish quality very good"), (4, 1, 0, 0, "Tower-1 toilets"), (5, 0, 12, 0, "Tower-1 terrace, 12 days late (monsoon)")],
-    "S K CONSTRUCTION": [(3, 0, 25, 1, "Leakage callbacks in 2 flats"), (4, 1, 0, 0, "Balcony work"), (3, 0, 18, 1, "Measurement dispute on final bill")],
-}
+def _meta():
+    f = SEED / "vendor_meta.json"
+    return json.loads(f.read_text()) if f.exists() else {"unregistered": [], "wp_hints": [], "road_hints": []}
+
+
+def _history():
+    f = SEED / "history.json"
+    return json.loads(f.read_text()) if f.exists() else {}
 
 
 def con():
@@ -51,12 +52,13 @@ def init(reset=False):
         names = json.loads((SEED / "contractors.json").read_text()) if (SEED / "contractors.json").exists() else []
         for n in names:
             k = vkey(n)
-            cat = "waterproofing" if any(h in n.upper() for h in _WP_HINT) else ("road/civil" if any(h in n.upper() for h in ("MATUR", "SADAK", "TRANS CONCRETE")) else "other")
+            m = _meta()
+            cat = "waterproofing" if any(h in n.upper() for h in m["wp_hints"]) else ("road/civil" if any(h in n.upper() for h in m["road_hints"]) else "other")
             c.execute("insert or ignore into vendors values(?,?,?,?,?,?)", (k, n, cat, 1, f"rfq+{k}@rfq-test.example", "guessed from name"))
         # the four bidders: add the two that are NOT in Vinayak's contractor list as unregistered
-        for n in ("Bajrang Construction & Waterproofing", "Shyama's Prevention & Cure Co."):
+        for n in _meta()["unregistered"]:
             k = vkey(n); c.execute("insert or ignore into vendors values(?,?,?,?,?,?)", (k, n, "waterproofing", 0, f"rfq+{k}@rfq-test.example", "from their quotation"))
-        for frag, rows in HISTORY.items():
+        for frag, rows in _history().items():
             row = c.execute("select key from vendors where upper(name) like ?", (f"%{frag}%",)).fetchone()
             k = row["key"]
             for q, ot, dd, ds, note in rows:

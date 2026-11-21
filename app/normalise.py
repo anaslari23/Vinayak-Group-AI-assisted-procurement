@@ -60,6 +60,19 @@ def normalise(q: dict, history: dict | None = None) -> dict:
     if gst_assumed:
         gst_pct = A["gst_default_pct"]
         flags.append(f"GST rate not stated in the quote ({g.get('basis', 'unstated')}); assumed {gst_pct:g}% extra, the standard works-contract rate. Confirm")
+    inclusive = g.get("basis") == "inclusive"
+    if inclusive and not gst_assumed:  # quoted rates already contain GST: strip it so all vendors compare ex-GST
+        base = base / (1 + gst_pct / 100)
+        for l in lines:
+            if l.get("cost") is not None:
+                l["cost"] /= 1 + gst_pct / 100; l["rate"] /= 1 + gst_pct / 100; l["flags"].append(f"rate was GST-inclusive; shown ex-GST (÷{1 + gst_pct / 100:.2f})")
+        flags.append(f"Rates are GST-inclusive ({gst_pct:g}%); stripped to ex-GST for comparison")
+    fr = (q.get("freight") or {}).get("amount") or 0.0
+    if fr:
+        flags.append(f"Freight / mobilisation of Rs {fr:,.0f} charged extra; added to landed cost")
+    elif (q.get("freight") or {}).get("included") is None:
+        flags.append("Freight not mentioned; assumed included (confirm)")
+    base += fr
     gst = base * gst_pct / 100
 
     # payment terms -> money

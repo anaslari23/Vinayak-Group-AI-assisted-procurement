@@ -1,10 +1,10 @@
-"""Build data/seed/*.json from the (confidential) data pack. Run locally: python scripts/build_seed.py <datapack_dir>.
+"""Build data/private/*.json from the (confidential) data pack. Run locally: python scripts/build_seed.py <datapack_dir>.
 The pack is NOT committed. Vendor emails are replaced by synthetic test-inbox addresses."""
 import json, re, sys
 from pathlib import Path
 import openpyxl
 
-pack = Path(sys.argv[1]); out = Path(__file__).resolve().parent.parent / "data" / "seed"
+pack = Path(sys.argv[1]); out = Path(__file__).resolve().parent.parent / "data" / "private"
 out.mkdir(parents=True, exist_ok=True)
 
 # ERP item codes
