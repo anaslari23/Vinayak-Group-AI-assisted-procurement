@@ -4,7 +4,7 @@
 
 Built for the Vinayak Group problem statement "AI-assisted procurement: from site requirement to vendor comparative", Vibe Coders Hackathon Edition 3 (Calcutta AI Club, 21 Nov 2026).
 
-- **Deployed link:** _to be added_
+- **Deployed link:** https://vinayak-procurement-agent.onrender.com (free tier: the first load after a quiet spell can take about a minute; data resets on redeploy)
 - **Demo video (2 min):** _to be added_
 - **Eval:** item-code matching 36 / 36 statuses right, 0 confidently wrong, on 36 requests (the 14 from the Step 2 spec plus our own; written by us, so a small friendly set). Quote extraction 360 / 360 fields correct across 12 quotes in 4 layouts (clean table, letterhead, email-style, handwritten scan), and 12 / 12 landed-cost totals matching a hand calculation. See [limits](#known-limitations).
 
