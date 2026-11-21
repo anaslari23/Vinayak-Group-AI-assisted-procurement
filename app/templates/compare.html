@@ -2,7 +2,7 @@
 <h1>5 · Comparative statement and ranking</h1>
 <p class="sub">Landed cost at tender quantities = base + GST + modelled cost of payment terms. Score = price {{w.price|round|int}} + vendor history {{w.performance|round|int}} + terms and risk {{w.terms|round|int}}. All arithmetic, no AI in the ranking.</p>
 <div class="banner"><b>Vendor history is SYNTHETIC demo data.</b> Vinayak records no performance history today; this shows how it would be captured and scored. Vendors with no record get a neutral half-score and are marked unverified.</div>
-<form class="card" method="get">Weights: price <input type="number" name="price" value="{{w.price|round|int}}" style="width:64px"> history <input type="number" name="performance" value="{{w.performance|round|int}}" style="width:64px"> terms <input type="number" name="terms" value="{{w.terms|round|int}}" style="width:64px"> <button class="sec">Re-rank</button> <a class="btn" href="/compare.xlsx?price={{w.price}}&performance={{w.performance}}&terms={{w.terms}}">Download Excel (ASSUMED Farvision layout)</a></form>
+<p class="mut">Weights: price 50, vendor history 30, terms and risk 20.</p>
 <div class="card"><b>Summary for the HOD</b> <span class="pill">{{how}}</span><p>{{summ}}</p></div>
 <table><tr><th>Rank</th><th>Vendor</th><th>Landed cost (Rs)</th><th>vs lowest</th><th>Price</th><th>History</th><th>Terms</th><th>Score</th><th>Price-only rank</th><th>Rank if history ignored</th></tr>
 {% for r in rows %}<tr class="{{'best' if r.rank==1}}"><td class="rank">{{r.rank}}</td><td><b>{{r.n.vendor}}</b></td><td class="n">{{r.n.landed|inr}}</td><td class="n">{{'+%.0f%%'|format(r.vs_lowest_pct) if r.vs_lowest_pct>0.5 else 'lowest'}}</td>

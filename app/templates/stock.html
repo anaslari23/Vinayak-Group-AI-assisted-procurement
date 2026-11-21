@@ -1,8 +1,7 @@
 {% extends "base.html" %}{% block body %}
 <h1>Stock and usage</h1>
 <p class="sub">From the master workbook: what is held where, and what was used where. The agent checks it before buying and answers questions about it in chat.</p>
-<form method="get" class="card">Ask: <input type="text" name="q" value="{{q}}" placeholder="how much cement is left at Demo Heights?" style="width:60%"> <button>Ask</button>
-{% if q %}<pre style="margin-top:8px">{{ans or 'That does not look like a stock question about a catalogued material.'}}</pre>{% endif %}</form>
+
 <h2>Held now</h2>
 <table><tr><th>Site</th><th>Store</th><th>Material</th><th>On hand</th><th>Reserved</th><th>Free</th><th>Updated</th><th>Source</th></tr>
 {% for s in st %}<tr><td>{{s.site}}</td><td>{{s.store}}</td><td>{{s.name}}</td><td class="n">{{s.qty|inr}} {{s.unit}}</td><td class="n">{{s.reserved|inr}}</td><td class="n"><b>{{s.free|inr}}</b></td><td>{{s.updated}}</td><td class="mut">{{s.source}}</td></tr>{% endfor %}</table>

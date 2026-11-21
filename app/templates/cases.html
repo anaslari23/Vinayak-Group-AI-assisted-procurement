@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block body %}
 <h1>The agent: cases</h1>
 <p class="sub">The agent takes every requirement from there: it asks what is missing, matches the item code, checks stock, sends RFQs, reads replies, compares vendors and brings the HOD a recommendation. The only human decisions are the ones it cannot make.</p>
-<div class="card"><b>Nothing to type here.</b> Requirements reach the agent on their own: from the WhatsApp group, Telegram, a voice call, or the phone simulator. This page lists every case it is handling and what it did. <a class="btn" href="/sim" style="margin-left:8px">Watch it on the phones</a></div>
+<div class="card"><b>Nothing to type here.</b> Requirements reach the agent on their own: from the WhatsApp group, Telegram, a voice call, or the phone simulator. This page lists every case it is handling and what it did.</div>
 {% if rows %}<table><tr><th>Case</th><th>Requirement</th><th>State</th><th>Waiting for</th><th>Updated</th></tr>
 {% for r in rows %}<tr><td><a href="/cases/{{r.id}}">#{{r.id}}</a></td><td>{{r.data.raw[:90]}}</td><td>{{STATE_LABEL.get(r.state, r.state)}}</td><td>{{r.waiting or '-'}}</td><td>{{r.updated}}</td></tr>{% endfor %}</table>{% endif %}
 {% endblock %}

@@ -21,7 +21,7 @@ T.env.filters["inr"] = lambda v: f"{v:,.0f}" if v is not None else "-"
 T.env.filters["inr2"] = lambda v: f"{v:,.2f}" if v is not None else "-"
 from .tender import DATA_DIR
 CACHE = DATA_DIR / "cache"
-NAV = [("H", "Live flow", "/"), ("A", "Cases", "/cases"), ("P", "Phones", "/sim"), ("C", "Call", "/call"), ("K", "Live voice", "/livekit"), ("W", "WhatsApp", "/whatsapp"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("M", "Master data", "/master"), ("E", "ERP clean-up", "/erp-cleanup"), ("L", "Evidence", "/eval")]
+NAV = [("H", "Live flow", "/"), ("A", "Cases", "/cases"), ("V", "Vendors", "/vendors"), ("S", "Stock", "/stock"), ("W", "WhatsApp", "/whatsapp"), ("L", "Evidence", "/eval")]
 STEPS = [("1", "Capture", "/requirement"), ("2", "Item code", "/requirement"), ("3", "RFQ", "/rfq"), ("4", "Quotes", "/quotes"), ("5", "Compare", "/compare"), ("6", "HOD", "/hod")]
 
 

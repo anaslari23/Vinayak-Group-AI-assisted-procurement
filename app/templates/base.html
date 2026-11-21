@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="/static/style.css"></head><body>
 <header><div class="top"><a class="brand" href="/"><span class="logo">V</span><b>Vinayak procurement agent</b></a>
 <span class="rule">Recommends only. A human decides.</span></div>
-<nav class="main">{% for n,label,url in nav %}<a href="{{url}}" class="{{'on' if active==n}}">{{label}}</a>{% endfor %}<a href="/mail">Mail log</a></nav>
-<nav class="pipe"><span class="mut">Buying steps:</span>{% for n,label,url in steps %}<a href="{{url}}" class="{{'on' if active==n}}">{{n}} · {{label}}</a>{% endfor %}</nav></header>
+<nav class="main">{% for n,label,url in nav %}<a href="{{url}}" class="{{'on' if active==n}}">{{label}}</a>{% endfor %}</nav>
+</header>
 <main>{% block body %}{% endblock %}</main>
 <footer>Synthetic demo data · built for the Vinayak Group procurement problem · no orders or payments are ever made by this system</footer></body></html>

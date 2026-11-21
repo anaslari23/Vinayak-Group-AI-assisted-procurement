@@ -6,5 +6,5 @@
 {% for r in rows %}<tr><td><a href="/cases/{{r.id}}">#{{r.id}}</a></td><td>{{r.raw[:110]}}</td>
 <td>{{r.parsed.item_description or '-'}}{% if r.parsed.quantity %}, {{r.parsed.quantity}} {{r.parsed.uom or ''}}{% endif %}{% if r.parsed.project %} · {{r.parsed.project}}{% endif %}{% if r.parsed.needed_by %} · by {{r.parsed.needed_by}}{% endif %}</td>
 <td>{{r.data.item_code or '-'}}</td><td>{{STATE_LABEL.get(r.state, r.state)}}</td></tr>{% else %}<tr><td colspan="5" class="mut">No requirements yet. Send one to the WhatsApp group, the Telegram bot, or the phone simulator.</td></tr>{% endfor %}</table>
-<p><a class="btn" href="/sim">Try it on the phones</a> <a class="btn sec" href="/erp-cleanup" style="background:#fff;color:#1c1917;border:1px solid #e7e2db">ERP clean-up report</a></p>
+
 {% endblock %}

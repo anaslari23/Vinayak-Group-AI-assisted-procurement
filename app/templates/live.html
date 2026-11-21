@@ -21,9 +21,9 @@
 .empty{text-align:center;color:var(--mut);padding:30px 10px}
 </style>
 <div class="hd"><h1 style="margin:0">Live flow</h1><span class="pill2" id="status"><span class="dot"></span><span id="stlabel">connecting</span></span>
-<select id="pick" style="margin-left:auto;width:auto"></select></div>
+</div>
 <p class="sub" style="margin:0 0 8px">Every requirement flows through these steps on its own. What you see is read live from what the agent actually did, check by check. Requirements arrive from WhatsApp, Telegram, a voice call, or this simulated phone.</p>
-<form class="compose" id="f"><input id="txt" type="text" placeholder="Simulated site engineer: e.g. Demo Heights Tower B toilet and balcony waterproofing, as per BOQ, needed by 20 Dec" autocomplete="off"><button>Send</button></form>
+<div class="msg" style="background:#f4efe7;margin:6px 0 14px 0;max-width:none;font-size:13.5px"><b>How a requirement starts:</b> someone messages the WhatsApp group (agent number +91 89811 07767), the Telegram bot, or calls the voice agent. The agent notices it by itself and this page shows it moving through the steps. <b>Admins decide in the WhatsApp group</b> by replying with a number or a word like "approve". Nothing is pressed on this website.</div>
 <div id="bubble"></div><div class="bar" id="bar"></div><div id="steps"><div class="empty">Waiting for a requirement…</div></div><div class="log" id="log"></div>
 <script>
 const $=id=>document.getElementById(id);let cur=null,follow=true,seen=new Set(),hashes={},lastActive='';
@@ -35,7 +35,7 @@ function dataHTML(d,s){if(!d)return '';let h='';
  if(d.kv)h+='<div class="kv">'+d.kv.filter(x=>x[1]).map(x=>`<span>${esc(x[0])}</span><span>${esc(x[1])}</span>`).join('')+'</div>';
  if(d.table)h+=`<table class="mini"><tr>${d.table.head.map(x=>`<th>${esc(x)}</th>`).join('')}</tr>${d.table.rows.map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table>`;
  if(d.bars)h+='<div class="bars">'+d.bars.map((b,i)=>`<div class="row"><span>${i+1}. ${esc(b.label)}</span><div class="track" title="${esc(b.note)}"><i style="width:${b.price}%;background:#4f46e5"></i><i style="width:${b.hist}%;background:#16a34a"></i><i style="width:${b.terms}%;background:#d97706"></i></div><b>${b.value}</b></div><div class="sm" style="margin:-2px 0 4px 158px">${esc(b.note)}</div>`).join('')+'<div class="sm">Bar = price + vendor history + terms and risk points</div></div>';
- if(d.message){h+=`<div class="hm">${esc(d.message)}</div>`;(d.options||[]).forEach((o,i)=>{h+=`<button class="opt ${i?'sec':''}" data-a="${esc(o.data)}">${esc(o.label)}</button>`});}
+ if(d.message){h+=`<div class="hm">${esc(d.message)}</div>`;if((d.options||[]).length)h+='<div class="sm" style="margin:8px 0 0">Admins reply in the WhatsApp group: '+d.options.map((o,i)=>(i+1)+' = '+esc(o.label)).join(' · ')+'</div>';}
  return h;}
 function render(j){
  if(!j.case_id){$('steps').innerHTML='<div class="empty">Waiting for a requirement… send one below, or message the WhatsApp group.</div>';$('bubble').innerHTML='';$('bar').innerHTML='';$('stlabel').textContent='idle';return;}
@@ -52,8 +52,5 @@ function render(j){
  if(activeKey&&activeKey!==lastActive){lastActive=activeKey;const t=$('st-'+activeKey);t&&t.scrollIntoView({behavior:'smooth',block:'center'});}}
 async function tick(){try{const j=await (await fetch('/api/flow'+(follow?'':'?case='+cur))).json();if(follow||j.case_id===cur){if(j.case_id!==cur){hashes={};seen=new Set();$('steps').dataset.init='';lastActive=''}render(j);}}catch(e){$('stlabel').textContent='reconnecting…'}}
 async function cases(){try{const l=await (await fetch('/api/cases')).json();const sel=$('pick');const v=sel.value;sel.innerHTML='<option value="latest">Following the latest case</option>'+l.map(c=>`<option value="${c.id}">#${c.id} · ${esc(c.raw)}</option>`).join('');sel.value=v||'latest';}catch(e){}}
-$('pick').onchange=e=>{follow=e.target.value==='latest';if(!follow)cur=+e.target.value;hashes={};seen=new Set();$('steps').dataset.init='';lastActive='';tick();};
-$('f').onsubmit=async e=>{e.preventDefault();const t=$('txt').value.trim();if(!t)return;$('txt').value='';follow=true;$('pick').value='latest';hashes={};seen=new Set();$('steps').dataset.init='';await fetch('/api/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:t})});tick();cases();};
-document.addEventListener('click',async e=>{const b=e.target.closest('button[data-a]');if(!b||!cur)return;b.disabled=true;const fd=new FormData();fd.append('data',b.dataset.a);await fetch('/cases/'+cur+'/button',{method:'POST',body:fd});tick();});
-setInterval(tick,1000);setInterval(cases,5000);tick();cases();
+setInterval(tick,1000);tick();
 </script>{% endblock %}
